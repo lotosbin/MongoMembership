@@ -5,9 +5,12 @@ using System.Configuration.Provider;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
+using System.Web;
 using System.Web.Helpers;
 using System.Web.Security;
+using WebMatrix.Data;
 using WebMatrix.WebData;
 using WebMatrix.WebData.Resources;
 
@@ -294,6 +297,21 @@ namespace ExtendedMongoMembership
             }
         }
 
+        private MembershipAccount GetUser(string userName)
+        {
+            VerifyInitialized();
+            using (var session = new MongoSession(_connectionString))
+            {
+                var user = session.Users.FirstOrDefault(x => x.UserName == userName);
+                if (user == null)
+                {
+                    throw new MembershipCreateUserException(MembershipCreateStatus.InvalidUserName);
+                }
+
+                return user;
+            }
+        }
+
         internal static int GetUserId(MongoSession session, string userTableName, string userNameColumn, string userIdColumn, string userName)
         {
             int result;
@@ -534,9 +552,19 @@ namespace ExtendedMongoMembership
                 throw new ArgumentException(WebDataResources.SimpleMembership_PasswordTooLong);
             }
 
-            // Update new password
-            int result = db.Execute(@"UPDATE " + MembershipTableName + " SET Password=@0, PasswordSalt=@1, PasswordChangedDate=@2 WHERE UserId = @3", hashedPassword, String.Empty /* salt column is unused */, DateTime.UtcNow, userId);
-            return result > 0;
+            try
+            {
+                var user = session.Users.FirstOrDefault(x => x.UserId == userId);
+                user.Password = hashedPassword;
+                user.PasswordSalt = string.Empty;
+                user.PasswordChangedDate = DateTime.UtcNow;
+                session.Update(user);
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         // Inherited from MembershipProvider ==> Forwarded to previous provider if this provider hasn't been initialized
@@ -548,34 +576,34 @@ namespace ExtendedMongoMembership
             }
 
             // REVIEW: are commas special in the password?
-            if (username.IsEmpty())
+            if (string.IsNullOrEmpty(username))
             {
-                throw new ArgumentException(CommonResources.Argument_Cannot_Be_Null_Or_Empty, "username");
+                throw new ArgumentException("CommonResources.Argument_Cannot_Be_Null_Or_Empty", "username");
             }
-            if (oldPassword.IsEmpty())
+            if (string.IsNullOrEmpty(oldPassword))
             {
-                throw new ArgumentException(CommonResources.Argument_Cannot_Be_Null_Or_Empty, "oldPassword");
+                throw new ArgumentException("CommonResources.Argument_Cannot_Be_Null_Or_Empty", "oldPassword");
             }
-            if (newPassword.IsEmpty())
+            if (string.IsNullOrEmpty(newPassword))
             {
-                throw new ArgumentException(CommonResources.Argument_Cannot_Be_Null_Or_Empty, "newPassword");
+                throw new ArgumentException("CommonResources.Argument_Cannot_Be_Null_Or_Empty", "newPassword");
             }
 
-            using (var db = ConnectToDatabase())
+            using (var session = new MongoSession(_connectionString))
             {
-                int userId = GetUserId(db, SafeUserTableName, SafeUserNameColumn, SafeUserIdColumn, username);
+                int userId = GetUserId(session, UserTableName, UserNameColumn, UserIdColumn, username);
                 if (userId == -1)
                 {
                     return false; // User not found
                 }
 
                 // First check that the old credentials match
-                if (!CheckPassword(db, userId, oldPassword))
+                if (!CheckPassword(session, userId, oldPassword))
                 {
                     return false;
                 }
 
-                return SetPassword(db, userId, newPassword);
+                return SetPassword(session, userId, newPassword);
             }
         }
 
@@ -608,9 +636,9 @@ namespace ExtendedMongoMembership
             }
 
             // Due to a bug in v1, GetUser allows passing null / empty values.
-            using (var db = ConnectToDatabase())
+            using (var session = new MongoSession(_connectionString))
             {
-                int userId = GetUserId(db, SafeUserTableName, SafeUserNameColumn, SafeUserIdColumn, username);
+                int userId = GetUserId(session, UserTableName, UserNameColumn, UserIdColumn, username);
                 if (userId == -1)
                 {
                     return null; // User not found
@@ -635,16 +663,24 @@ namespace ExtendedMongoMembership
         {
             VerifyInitialized();
 
-            using (var db = ConnectToDatabase())
+            using (var session = new MongoSession(_connectionString))
             {
-                int userId = GetUserId(db, SafeUserTableName, SafeUserNameColumn, SafeUserIdColumn, userName);
+                int userId = GetUserId(session, UserTableName, UserNameColumn, UserIdColumn, userName);
                 if (userId == -1)
                 {
                     return false; // User not found
                 }
 
-                int deleted = db.Execute(@"DELETE FROM " + MembershipTableName + " WHERE UserId = @0", userId);
-                return (deleted == 1);
+
+                try
+                {
+                    session.DeleteById<MembershipAccount>(userId);
+                    return true;
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
             }
         }
 
@@ -656,16 +692,22 @@ namespace ExtendedMongoMembership
                 return PreviousProvider.DeleteUser(username, deleteAllRelatedData);
             }
 
-            using (var db = ConnectToDatabase())
+            using (var session = new MongoSession(_connectionString))
             {
-                int userId = GetUserId(db, SafeUserTableName, SafeUserNameColumn, SafeUserIdColumn, username);
+                int userId = GetUserId(session, UserTableName, UserNameColumn, UserIdColumn, username);
                 if (userId == -1)
                 {
                     return false; // User not found
                 }
-
-                int deleted = db.Execute(@"DELETE FROM " + SafeUserTableName + " WHERE " + SafeUserIdColumn + " = @0", userId);
-                bool returnValue = (deleted == 1);
+                bool returnValue = false;
+                try
+                {
+                    session.DeleteById(userId, UserTableName);
+                    returnValue = true;
+                }
+                catch (Exception)
+                {
+                }
 
                 //if (deleteAllRelatedData) {
                 // REVIEW: do we really want to delete from the user table?
@@ -719,12 +761,12 @@ namespace ExtendedMongoMembership
             throw new NotSupportedException();
         }
 
-        private static int GetPasswordFailuresSinceLastSuccess(IDatabase db, int userId)
+        private static int GetPasswordFailuresSinceLastSuccess(MongoSession session, int userId)
         {
-            var failure = db.QueryValue(@"SELECT PasswordFailuresSinceLastSuccess FROM " + MembershipTableName + " WHERE (UserId = @0)", userId);
-            if (failure != null)
+            var failure = session.Users.FirstOrDefault(x => x.UserId == userId);
+            if (failure != null && failure.PasswordFailuresSinceLastSuccess != null)
             {
-                return failure;
+                return failure.PasswordFailuresSinceLastSuccess;
             }
             return -1;
         }
@@ -732,33 +774,32 @@ namespace ExtendedMongoMembership
         // Inherited from ExtendedMembershipProvider ==> Simple Membership MUST be enabled to use this method
         public override int GetPasswordFailuresSinceLastSuccess(string userName)
         {
-            using (var db = ConnectToDatabase())
+            using (var session = new MongoSession(_connectionString))
             {
-                int userId = GetUserId(db, SafeUserTableName, SafeUserNameColumn, SafeUserIdColumn, userName);
+                int userId = GetUserId(session, UserTableName, UserNameColumn, UserIdColumn, userName);
                 if (userId == -1)
                 {
                     throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.Security_NoUserFound, userName));
                 }
 
-                return GetPasswordFailuresSinceLastSuccess(db, userId);
+                return GetPasswordFailuresSinceLastSuccess(session, userId);
             }
         }
 
         // Inherited from ExtendedMembershipProvider ==> Simple Membership MUST be enabled to use this method
         public override DateTime GetCreateDate(string userName)
         {
-            using (var db = ConnectToDatabase())
+            using (var session = new MongoSession(_connectionString))
             {
-                int userId = GetUserId(db, SafeUserTableName, SafeUserNameColumn, SafeUserIdColumn, userName);
-                if (userId == -1)
+                var user = session.Users.FirstOrDefault(x => x.UserName == userName);
+                if (user == null)
                 {
                     throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.Security_NoUserFound, userName));
                 }
 
-                var createDate = db.QueryValue(@"SELECT CreateDate FROM " + MembershipTableName + " WHERE (UserId = @0)", userId);
-                if (createDate != null)
+                if (user.CreateDate.HasValue)
                 {
-                    return createDate;
+                    return user.CreateDate.Value;
                 }
                 return DateTime.MinValue;
             }
@@ -767,18 +808,17 @@ namespace ExtendedMongoMembership
         // Inherited from ExtendedMembershipProvider ==> Simple Membership MUST be enabled to use this method
         public override DateTime GetPasswordChangedDate(string userName)
         {
-            using (var db = ConnectToDatabase())
+            using (var session = new MongoSession(_connectionString))
             {
-                int userId = GetUserId(db, SafeUserTableName, SafeUserNameColumn, SafeUserIdColumn, userName);
-                if (userId == -1)
+                var user = session.Users.FirstOrDefault(x => x.UserName == userName);
+                if (user == null)
                 {
                     throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.Security_NoUserFound, userName));
                 }
 
-                var pwdChangeDate = db.QuerySingle(@"SELECT PasswordChangedDate FROM " + MembershipTableName + " WHERE (UserId = @0)", userId);
-                if (pwdChangeDate != null && pwdChangeDate[0] != null)
+                if (user.PasswordChangedDate.HasValue)
                 {
-                    return (DateTime)pwdChangeDate[0];
+                    return user.PasswordChangedDate.Value;
                 }
                 return DateTime.MinValue;
             }
@@ -787,65 +827,66 @@ namespace ExtendedMongoMembership
         // Inherited from ExtendedMembershipProvider ==> Simple Membership MUST be enabled to use this method
         public override DateTime GetLastPasswordFailureDate(string userName)
         {
-            using (var db = ConnectToDatabase())
+            using (var session = new MongoSession(_connectionString))
             {
-                int userId = GetUserId(db, SafeUserTableName, SafeUserNameColumn, SafeUserIdColumn, userName);
-                if (userId == -1)
+                var user = session.Users.FirstOrDefault(x => x.UserName == userName);
+                if (user == null)
                 {
                     throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.Security_NoUserFound, userName));
                 }
 
-                var failureDate = db.QuerySingle(@"SELECT LastPasswordFailureDate FROM " + MembershipTableName + " WHERE (UserId = @0)", userId);
-                if (failureDate != null && failureDate[0] != null)
+                if (user.LastPasswordFailureDate.HasValue)
                 {
-                    return (DateTime)failureDate[0];
+                    return user.LastPasswordFailureDate.Value;
                 }
                 return DateTime.MinValue;
             }
         }
 
-        private bool CheckPassword(IDatabase db, int userId, string password)
+        private bool CheckPassword(MongoSession session, int userId, string password)
         {
-            string hashedPassword = GetHashedPassword(db, userId);
+            string hashedPassword = GetHashedPassword(session, userId);
+            var user = session.Users.FirstOrDefault(x => x.UserId == userId);
             bool verificationSucceeded = (hashedPassword != null && Crypto.VerifyHashedPassword(hashedPassword, password));
             if (verificationSucceeded)
             {
                 // Reset password failure count on successful credential check
-                db.Execute(@"UPDATE " + MembershipTableName + " SET PasswordFailuresSinceLastSuccess = 0 WHERE (UserId = @0)", userId);
+                user.PasswordFailuresSinceLastSuccess = 0;
             }
             else
             {
-                int failures = GetPasswordFailuresSinceLastSuccess(db, userId);
+                int failures = GetPasswordFailuresSinceLastSuccess(session, userId);
                 if (failures != -1)
                 {
-                    db.Execute(@"UPDATE " + MembershipTableName + " SET PasswordFailuresSinceLastSuccess = @1, LastPasswordFailureDate = @2 WHERE (UserId = @0)", userId, failures + 1, DateTime.UtcNow);
+                    user.PasswordFailuresSinceLastSuccess = failures + 1;
+                    user.LastPasswordFailureDate = DateTime.UtcNow;
                 }
             }
+
+            session.Save(user);
             return verificationSucceeded;
         }
 
-        private string GetHashedPassword(IDatabase db, int userId)
+        private string GetHashedPassword(MongoSession session, int userId)
         {
-            var pwdQuery = db.Query(@"SELECT m.[Password] " +
-                                    @"FROM " + MembershipTableName + " m, " + SafeUserTableName + " u " +
-                                    @"WHERE m.UserId = " + userId + " AND m.UserId = u." + SafeUserIdColumn).ToList();
+            var user = session.Users.FirstOrDefault(x => x.UserId == userId);
             // REVIEW: Should get exactly one match, should we throw if we get > 1?
-            if (pwdQuery.Count != 1)
+            if (user == null)
             {
                 return null;
             }
-            return pwdQuery[0].Password;
+            return user.Password;
         }
 
         // Ensures the user exists in the accounts table
-        private int VerifyUserNameHasConfirmedAccount(IDatabase db, string username, bool throwException)
+        private int VerifyUserNameHasConfirmedAccount(MongoSession session, string userName, bool throwException)
         {
-            int userId = GetUserId(db, SafeUserTableName, SafeUserNameColumn, SafeUserIdColumn, username);
-            if (userId == -1)
+            var user = session.Users.FirstOrDefault(x => x.UserName == userName);
+            if (user == null)
             {
                 if (throwException)
                 {
-                    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.Security_NoUserFound, username));
+                    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.Security_NoUserFound, userName));
                 }
                 else
                 {
@@ -853,19 +894,18 @@ namespace ExtendedMongoMembership
                 }
             }
 
-            int result = db.QueryValue(@"SELECT COUNT(*) FROM " + MembershipTableName + " WHERE (UserId = @0 AND IsConfirmed = 1)", userId);
-            if (result == 0)
+            if (!user.IsConfirmed)
             {
                 if (throwException)
                 {
-                    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.Security_NoAccountFound, username));
+                    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.Security_NoAccountFound, userName));
                 }
                 else
                 {
                     return -1;
                 }
             }
-            return userId;
+            return user.UserId;
         }
 
         private static string GenerateToken()
@@ -887,21 +927,31 @@ namespace ExtendedMongoMembership
         public override string GeneratePasswordResetToken(string userName, int tokenExpirationInMinutesFromNow)
         {
             VerifyInitialized();
-            if (userName.IsEmpty())
+            if (string.IsNullOrEmpty(userName))
             {
-                throw new ArgumentException(CommonResources.Argument_Cannot_Be_Null_Or_Empty, "userName");
+                throw new ArgumentException("CommonResources.Argument_Cannot_Be_Null_Or_Empty", "userName");
             }
-            using (var db = ConnectToDatabase())
+            using (var session = new MongoSession(_connectionString))
             {
-                int userId = VerifyUserNameHasConfirmedAccount(db, userName, throwException: true);
+                int userId = VerifyUserNameHasConfirmedAccount(session, userName, throwException: true);
 
-                string token = db.QueryValue(@"SELECT PasswordVerificationToken FROM " + MembershipTableName + " WHERE (UserId = @0 AND PasswordVerificationTokenExpirationDate > @1)", userId, DateTime.UtcNow);
-                if (token == null)
+                var user = session.Users.FirstOrDefault(x => x.UserId == userId && x.PasswordVerificationTokenExpirationDate > DateTime.UtcNow);
+
+                if (user == null)
                 {
-                    token = GenerateToken();
+                    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.Security_NoUserFound, userName));
+                }
 
-                    int rows = db.Execute(@"UPDATE " + MembershipTableName + " SET PasswordVerificationToken = @0, PasswordVerificationTokenExpirationDate = @1 WHERE (UserId = @2)", token, DateTime.UtcNow.AddMinutes(tokenExpirationInMinutesFromNow), userId);
-                    if (rows != 1)
+
+                if (user.PasswordVerificationToken == null)
+                {
+                    user.PasswordVerificationToken = GenerateToken();
+                    user.PasswordVerificationTokenExpirationDate = DateTime.UtcNow.AddMinutes(tokenExpirationInMinutesFromNow);
+                    try
+                    {
+                        session.Save(user);
+                    }
+                    catch (Exception)
                     {
                         throw new ProviderException(WebDataResources.Security_DbFailure);
                     }
@@ -910,7 +960,7 @@ namespace ExtendedMongoMembership
                 {
                     // TODO: should we update expiry again?
                 }
-                return token;
+                return user.PasswordVerificationToken;
             }
         }
 
@@ -918,12 +968,12 @@ namespace ExtendedMongoMembership
         public override bool IsConfirmed(string userName)
         {
             VerifyInitialized();
-            if (userName.IsEmpty())
+            if (string.IsNullOrEmpty(userName))
             {
-                throw new ArgumentException(CommonResources.Argument_Cannot_Be_Null_Or_Empty, "userName");
+                throw new ArgumentException("CommonResources.Argument_Cannot_Be_Null_Or_Empty", "userName");
             }
 
-            using (var db = ConnectToDatabase())
+            using (var session = new MongoSession(_connectionString))
             {
                 int userId = VerifyUserNameHasConfirmedAccount(db, userName, throwException: false);
                 return (userId != -1);
@@ -934,21 +984,26 @@ namespace ExtendedMongoMembership
         public override bool ResetPasswordWithToken(string token, string newPassword)
         {
             VerifyInitialized();
-            if (newPassword.IsEmpty())
+            if (string.IsNullOrEmpty(newPassword))
             {
-                throw new ArgumentException(CommonResources.Argument_Cannot_Be_Null_Or_Empty, "newPassword");
+                throw new ArgumentException("CommonResources.Argument_Cannot_Be_Null_Or_Empty", "newPassword");
             }
-            using (var db = ConnectToDatabase())
+            using (var session = new MongoSession(_connectionString))
             {
-                int? userId = db.QueryValue(@"SELECT UserId FROM " + MembershipTableName + " WHERE (PasswordVerificationToken = @0 AND PasswordVerificationTokenExpirationDate > @1)", token, DateTime.UtcNow);
-                if (userId != null)
+                var user = session.Users.FirstOrDefault(x => x.PasswordVerificationToken == token && x.PasswordVerificationTokenExpirationDate > DateTime.UtcNow);
+                if (user != null)
                 {
-                    bool success = SetPassword(db, userId.Value, newPassword);
+                    bool success = SetPassword(session, user.UserId, newPassword);
                     if (success)
                     {
                         // Clear the Token on success
-                        int rows = db.Execute(@"UPDATE " + MembershipTableName + " SET PasswordVerificationToken = NULL, PasswordVerificationTokenExpirationDate = NULL WHERE (UserId = @0)", userId);
-                        if (rows != 1)
+                        user.PasswordVerificationToken = null;
+                        user.PasswordVerificationTokenExpirationDate = null;
+                        try
+                        {
+                            session.Save(user);
+                        }
+                        catch (Exception)
                         {
                             throw new ProviderException(WebDataResources.Security_DbFailure);
                         }
@@ -985,21 +1040,21 @@ namespace ExtendedMongoMembership
             throw new NotSupportedException();
         }
 
-        internal void ValidateUserTable()
-        {
-            using (var db = ConnectToDatabase())
-            {
-                // GetUser will fail with an exception if the user table isn't set up properly
-                try
-                {
-                    GetUserId(db, SafeUserTableName, SafeUserNameColumn, SafeUserIdColumn, "z");
-                }
-                catch (Exception e)
-                {
-                    throw new InvalidOperationException(String.Format(CultureInfo.InvariantCulture, WebDataResources.Security_FailedToFindUserTable, UserTableName), e);
-                }
-            }
-        }
+        //internal void ValidateUserTable()
+        //{
+        //    using (var session = new MongoSession(_connectionString))
+        //    {
+        //        // GetUser will fail with an exception if the user table isn't set up properly
+        //        try
+        //        {
+        //            GetUserId(db, SafeUserTableName, SafeUserNameColumn, SafeUserIdColumn, "z");
+        //        }
+        //        catch (Exception e)
+        //        {
+        //            throw new InvalidOperationException(String.Format(CultureInfo.InvariantCulture, WebDataResources.Security_FailedToFindUserTable, UserTableName), e);
+        //        }
+        //    }
+        //}
 
         // Inherited from MembershipProvider ==> Forwarded to previous provider if this provider hasn't been initialized
         public override bool ValidateUser(string username, string password)
@@ -1008,25 +1063,25 @@ namespace ExtendedMongoMembership
             {
                 return PreviousProvider.ValidateUser(username, password);
             }
-            if (username.IsEmpty())
+            if (string.IsNullOrEmpty(username))
             {
-                throw new ArgumentException(CommonResources.Argument_Cannot_Be_Null_Or_Empty, "username");
+                throw new ArgumentException("CommonResources.Argument_Cannot_Be_Null_Or_Empty", "username");
             }
-            if (password.IsEmpty())
+            if (string.IsNullOrEmpty(password))
             {
-                throw new ArgumentException(CommonResources.Argument_Cannot_Be_Null_Or_Empty, "password");
+                throw new ArgumentException("CommonResources.Argument_Cannot_Be_Null_Or_Empty", "password");
             }
 
-            using (var db = ConnectToDatabase())
+            using (var session = new MongoSession(_connectionString))
             {
-                int userId = VerifyUserNameHasConfirmedAccount(db, username, throwException: false);
+                int userId = VerifyUserNameHasConfirmedAccount(session, username, throwException: false);
                 if (userId == -1)
                 {
                     return false;
                 }
                 else
                 {
-                    return CheckPassword(db, userId, password);
+                    return CheckPassword(session, userId, password);
                 }
             }
         }
@@ -1035,10 +1090,12 @@ namespace ExtendedMongoMembership
         {
             VerifyInitialized();
 
-            using (var db = ConnectToDatabase())
+            using (var session = new MongoSession(_connectionString))
             {
-                dynamic username = db.QueryValue("SELECT " + SafeUserNameColumn + " FROM " + SafeUserTableName + " WHERE (" + SafeUserIdColumn + "=@0)", userId);
-                return (string)username;
+                var user = session.Users.FirstOrDefault(x => x.UserId == userId);
+                if (user == null)
+                    return null;
+                return user.UserName;
             }
         }
 
@@ -1046,25 +1103,25 @@ namespace ExtendedMongoMembership
         {
             VerifyInitialized();
 
-            if (userName.IsEmpty())
+            if (string.IsNullOrEmpty(userName))
             {
                 throw new MembershipCreateUserException(MembershipCreateStatus.ProviderError);
             }
 
-            int userId = GetUserId(userName);
-            if (userId == -1)
-            {
-                throw new MembershipCreateUserException(MembershipCreateStatus.InvalidUserName);
-            }
+            var user = GetUser(userName);
 
             var oldUserId = GetUserIdFromOAuth(provider, providerUserId);
-            using (var db = ConnectToDatabase())
+            using (var session = new MongoSession(_connectionString))
             {
                 if (oldUserId == -1)
                 {
                     // account doesn't exist. create a new one.
-                    int insert = db.Execute(@"INSERT INTO [" + OAuthMembershipTableName + "] (Provider, ProviderUserId, UserId) VALUES (@0, @1, @2)", provider, providerUserId, userId);
-                    if (insert != 1)
+                    user.OAuthData.Add(new OAuthAccountDataEmbedded(provider, providerUserId));
+                    try
+                    {
+                        session.Save(user);
+                    }
+                    catch (Exception)
                     {
                         throw new MembershipCreateUserException(MembershipCreateStatus.ProviderError);
                     }
@@ -1072,8 +1129,16 @@ namespace ExtendedMongoMembership
                 else
                 {
                     // account already exist. update it
-                    int insert = db.Execute(@"UPDATE [" + OAuthMembershipTableName + "] SET UserId = @2 WHERE UPPER(Provider)=@0 AND UPPER(ProviderUserId)=@1", provider, providerUserId, userId);
-                    if (insert != 1)
+                    var oldUser = session.Users.Where(y => y.OAuthData.Any(x => x.ProviderUserId == providerUserId && x.Provider == provider)).FirstOrDefault();
+                    var data = oldUser.OAuthData.FirstOrDefault(x => x.ProviderUserId == providerUserId && x.Provider == provider);
+                    oldUser.OAuthData.Remove(data);
+                    user.OAuthData.Add(data);
+                    try
+                    {
+                        session.Save(oldUser);
+                        session.Save(user);
+                    }
+                    catch (Exception)
                     {
                         throw new MembershipCreateUserException(MembershipCreateStatus.ProviderError);
                     }
@@ -1085,11 +1150,16 @@ namespace ExtendedMongoMembership
         {
             VerifyInitialized();
 
-            using (var db = ConnectToDatabase())
+            using (var session = new MongoSession(_connectionString))
             {
-                // account doesn't exist. create a new one.
-                int insert = db.Execute(@"DELETE FROM [" + OAuthMembershipTableName + "] WHERE UPPER(Provider)=@0 AND UPPER(ProviderUserId)=@1", provider, providerUserId);
-                if (insert != 1)
+                var user = session.Users.FirstOrDefault(y => y.OAuthData.Any(x => x.ProviderUserId == providerUserId && x.Provider == provider));
+                var data = user.OAuthData.FirstOrDefault(x => x.ProviderUserId == providerUserId && x.Provider == provider);
+                user.OAuthData.Remove(data);
+                try
+                {
+                    session.Save(user);
+                }
+                catch (Exception)
                 {
                     throw new MembershipCreateUserException(MembershipCreateStatus.ProviderError);
                 }
@@ -1100,12 +1170,12 @@ namespace ExtendedMongoMembership
         {
             VerifyInitialized();
 
-            using (var db = ConnectToDatabase())
+            using (var session = new MongoSession(_connectionString))
             {
-                dynamic id = db.QueryValue(@"SELECT UserId FROM [" + OAuthMembershipTableName + "] WHERE UPPER(Provider)=@0 AND UPPER(ProviderUserId)=@1", provider.ToUpperInvariant(), providerUserId.ToUpperInvariant());
-                if (id != null)
+                var user = session.Users.FirstOrDefault(y => y.OAuthData.Any(x => x.ProviderUserId == providerUserId && x.Provider == provider));
+                if (user != null)
                 {
-                    return (int)id;
+                    return (int)user.UserId;
                 }
 
                 return -1;
@@ -1116,13 +1186,11 @@ namespace ExtendedMongoMembership
         {
             VerifyInitialized();
 
-            using (var db = ConnectToDatabase())
+            using (var session = new MongoSession(_connectionString))
             {
-                CreateOAuthTokenTableIfNeeded(db);
-
                 // Note that token is case-sensitive
-                dynamic secret = db.QueryValue(@"SELECT Secret FROM [" + OAuthTokenTableName + "] WHERE Token=@0", token);
-                return (string)secret;
+                var oauthToken = session.OAuthTokens.FirstOrDefault(x => x.Token == token);
+                return oauthToken.Secret;
             }
         }
 
@@ -1130,32 +1198,41 @@ namespace ExtendedMongoMembership
         {
             VerifyInitialized();
 
-            string existingSecret = GetOAuthTokenSecret(requestToken);
+            OAuthToken existingSecret;
+            using (var session = new MongoSession(_connectionString))
+            {
+                existingSecret = session.OAuthTokens.FirstOrDefault(x => x.Token == requestToken);
+            }
             if (existingSecret != null)
             {
-                if (existingSecret == requestTokenSecret)
+                if (existingSecret.Secret == requestTokenSecret)
                 {
                     // the record already exists
                     return;
                 }
 
-                using (var db = ConnectToDatabase())
+                using (var session = new MongoSession(_connectionString))
                 {
-                    CreateOAuthTokenTableIfNeeded(db);
-
                     // the token exists with old secret, update it to new secret
-                    db.Execute(@"UPDATE [" + OAuthTokenTableName + "] SET Secret = @1 WHERE Token = @0", requestToken, requestTokenSecret);
+                    existingSecret.Secret = requestTokenSecret;
+                    session.Save(existingSecret);
                 }
             }
             else
             {
-                using (var db = ConnectToDatabase())
+                using (var session = new MongoSession(_connectionString))
                 {
-                    CreateOAuthTokenTableIfNeeded(db);
-
                     // insert new record
-                    int insert = db.Execute(@"INSERT INTO [" + OAuthTokenTableName + "] (Token, Secret) VALUES(@0, @1)", requestToken, requestTokenSecret);
-                    if (insert != 1)
+                    OAuthToken newOAuthToken = new OAuthToken
+                    {
+                        Secret = requestTokenSecret,
+                        Token = requestToken
+                    };
+                    try
+                    {
+                        session.Save(newOAuthToken);
+                    }
+                    catch (Exception)
                     {
                         throw new ProviderException(WebDataResources.SimpleMembership_FailToStoreOAuthToken);
                     }
@@ -1173,12 +1250,10 @@ namespace ExtendedMongoMembership
         {
             VerifyInitialized();
 
-            using (var db = ConnectToDatabase())
+            using (var session = new MongoSession(_connectionString))
             {
-                CreateOAuthTokenTableIfNeeded(db);
-
                 // insert new record
-                db.Execute(@"DELETE FROM [" + OAuthTokenTableName + "] WHERE Token = @0", requestToken);
+                session.DeleteById<OAuthToken>(requestToken);
 
                 // Although there are two different types of tokens, request token and access token,
                 // we treat them the same in database records.
@@ -1194,12 +1269,10 @@ namespace ExtendedMongoMembership
         {
             VerifyInitialized();
 
-            using (var db = ConnectToDatabase())
+            using (var session = new MongoSession(_connectionString))
             {
-                CreateOAuthTokenTableIfNeeded(db);
-
                 // Note that token is case-sensitive
-                db.Execute(@"DELETE FROM [" + OAuthTokenTableName + "] WHERE Token=@0", token);
+                session.DeleteById<OAuthToken>(token);
             }
         }
 
@@ -1207,18 +1280,17 @@ namespace ExtendedMongoMembership
         {
             VerifyInitialized();
 
-            int userId = GetUserId(userName);
-            if (userId != -1)
+            var user = GetUser(userName);
+            if (user != null)
             {
-                using (var db = ConnectToDatabase())
+                using (var session = new MongoSession(_connectionString))
                 {
-                    IEnumerable<dynamic> records = db.Query(@"SELECT Provider, ProviderUserId FROM [" + OAuthMembershipTableName + "] WHERE UserId=@0", userId);
-                    if (records != null)
+                    if (user.OAuthData.Count > 0)
                     {
                         var accounts = new List<OAuthAccountData>();
-                        foreach (DynamicRecord row in records)
+                        foreach (var row in user.OAuthData)
                         {
-                            accounts.Add(new OAuthAccountData((string)row["Provider"], (string)row["ProviderUserId"]));
+                            accounts.Add(new OAuthAccountData(row.Provider, row.ProviderUserId));
                         }
                         return accounts;
                     }
@@ -1239,10 +1311,10 @@ namespace ExtendedMongoMembership
         {
             VerifyInitialized();
 
-            using (var db = ConnectToDatabase())
+            using (var session = new MongoSession(_connectionString))
             {
-                dynamic id = db.QueryValue(@"SELECT UserId FROM [" + MembershipTableName + "] WHERE UserId=@0", userId);
-                return id != null;
+                var user = session.Users.FirstOrDefault(x => x.UserId == userId);
+                return user != null;
             }
         }
     }

@@ -52,7 +52,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Entities\MembershipAccount.cs" />
-    <Compile Include="Entities\OAuthAccountData.cs" />
+    <Compile Include="Entities\OAuthAccountDataEmbedded.cs" />
     <Compile Include="Entities\OAuthToken.cs" />
     <Compile Include="MembershipProvider.cs" />
     <Compile Include="MongoSession.cs" />
@@ -68,9 +68,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Resources\WebDataResources.resx" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

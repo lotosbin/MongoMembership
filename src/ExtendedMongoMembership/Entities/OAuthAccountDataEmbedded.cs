@@ -6,14 +6,14 @@ namespace ExtendedMongoMembership
     /// <summary>
     /// Represents an OpenAuth and OpenID account.
     /// </summary>
-    public class OAuthAccountData
+    public class OAuthAccountDataEmbedded
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="OAuthAccountData"/> class.
+        /// Initializes a new instance of the <see cref="OAuthAccountDataEmbedded"/> class.
         /// </summary>
         /// <param name="provider">The provider.</param>
         /// <param name="providerUserId">The provider user id.</param>
-        public OAuthAccountData(string provider, string providerUserId)
+        public OAuthAccountDataEmbedded(string provider, string providerUserId)
         {
             if (String.IsNullOrEmpty(provider))
             {
@@ -42,7 +42,5 @@ namespace ExtendedMongoMembership
         /// Gets the provider user id.
         /// </summary>
         public string ProviderUserId { get; private set; }
-
-        public int UserId { get; set; }
     }
 }

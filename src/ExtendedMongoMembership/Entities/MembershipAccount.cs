@@ -62,5 +62,7 @@ namespace ExtendedMongoMembership
         public List<MembershipRole> Roles { get; set; }
 
         public string UserName { get; set; }
+
+        public List<OAuthAccountDataEmbedded> OAuthData { get; set; }
     }
 }

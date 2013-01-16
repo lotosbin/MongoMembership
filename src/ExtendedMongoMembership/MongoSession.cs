@@ -47,11 +47,6 @@ namespace ExtendedMongoMembership
             get { return _provider.GetCollection<MembershipRole>("Roles").AsQueryable(); }
         }
 
-        public IQueryable<OAuthAccountData> OAuthAccountData
-        {
-            get { return _provider.GetCollection<OAuthAccountData>("OAuthMembership").AsQueryable(); }
-        }
-
         public IQueryable<OAuthToken> OAuthTokens
         {
             get { return _provider.GetCollection<OAuthToken>("OAuthTokens").AsQueryable(); }
@@ -115,9 +110,21 @@ namespace ExtendedMongoMembership
             Save(item);
         }
 
-        public void Delete<T>(IMongoQuery query) where T : class
+        public void DeleteByQuery<T>(IMongoQuery query) where T : class
         {
             _provider.GetCollection<T>(GetCollectionName<T>()).Remove(query);
+        }
+
+        public void DeleteById<T>(object id) where T : class
+        {
+            IMongoQuery query = Query.EQ("_id", id.ToString());
+            _provider.GetCollection<T>(GetCollectionName<T>()).Remove(query);
+        }
+
+        public void DeleteById(object id, string collectionName)
+        {
+            IMongoQuery query = Query.EQ("_id", id.ToString());
+            _provider.GetCollection(collectionName).Remove(query);
         }
 
         public void Drop<T>()
@@ -145,10 +152,6 @@ namespace ExtendedMongoMembership
             else if (t == typeof(MembershipRole))
             {
                 result = "Roles";
-            }
-            else if (t == typeof(OAuthAccountData))
-            {
-                result = "OAuthMembership";
             }
             else if (t == typeof(OAuthToken))
             {
