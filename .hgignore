@@ -1,0 +1,7 @@
+syntax: glob
+Jobs4Use/_ReSharper.Jobs4Use
+Jobs4Use/Jobs4Use.WebUI/bin
+Jobs4Use/Jobs4Use.WebUI/obj
+Jobs4Use/Jobs4Use.Core/obj
+Jobs4Use/Jobs4Use.Core/bin
+Jobs4Use/Jobs4Use.v11.suo

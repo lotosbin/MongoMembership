@@ -54,7 +54,6 @@
     <Compile Include="Entities\MembershipAccount.cs" />
     <Compile Include="Entities\OAuthAccountDataEmbedded.cs" />
     <Compile Include="Entities\OAuthToken.cs" />
-    <Compile Include="MembershipProvider.cs" />
     <Compile Include="MongoSession.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Entities\MembershipRole.cs" />
