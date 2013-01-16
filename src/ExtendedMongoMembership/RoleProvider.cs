@@ -1,6 +1,4 @@
-﻿using MongoDB.Driver;
-using MongoDB.Driver.Builders;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration.Provider;
@@ -215,8 +213,7 @@ namespace ExtendedMongoMembership
                         throw new ProviderException(StringResources.GetString(StringResources.Role_is_not_empty));
                     }
 
-                    IMongoQuery query = Query.EQ("_id", role.RoleId);
-                    session.Delete<MembershipRole>(query);
+                    session.DeleteById<MembershipRole>(role.RoleId);
 
                     return true;
 

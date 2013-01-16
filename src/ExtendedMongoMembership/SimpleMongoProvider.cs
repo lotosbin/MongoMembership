@@ -6,11 +6,9 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
 using System.Web;
 using System.Web.Helpers;
 using System.Web.Security;
-using WebMatrix.Data;
 using WebMatrix.WebData;
 using WebMatrix.WebData.Resources;
 
@@ -174,7 +172,8 @@ namespace ExtendedMongoMembership
 
         internal bool InitializeCalled { get; set; }
 
-        internal override void VerifyInitialized()
+
+        internal void VerifyInitialized()
         {
             if (!InitializeCalled)
             {
@@ -975,7 +974,7 @@ namespace ExtendedMongoMembership
 
             using (var session = new MongoSession(_connectionString))
             {
-                int userId = VerifyUserNameHasConfirmedAccount(db, userName, throwException: false);
+                int userId = VerifyUserNameHasConfirmedAccount(session, userName, throwException: false);
                 return (userId != -1);
             }
         }
