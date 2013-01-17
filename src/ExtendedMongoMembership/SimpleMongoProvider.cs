@@ -143,30 +143,11 @@ namespace ExtendedMongoMembership
             }
         }
 
-        internal static string MembershipTableName
-        {
-            get { return "Memberships"; }
-        }
-
-        internal static string OAuthMembershipTableName
-        {
-            get { return "OAuthMemberships"; }
-        }
-
-        internal static string OAuthTokenTableName
-        {
-            get { return "OAuthTokens"; }
-        }
-
         // represents the User table for the app
         public string UserTableName { get; set; }
 
         // represents the User created UserName column, i.e. Email
         public string UserNameColumn { get; set; }
-
-        // Represents the User created id column, i.e. ID;
-        // REVIEW: we could get this from the primary key of UserTable in the future
-        public string UserIdColumn { get; set; }
 
         private string _connectionString;
 
@@ -200,6 +181,18 @@ namespace ExtendedMongoMembership
             }
             base.Initialize(name, config);
 
+            string temp = config["connectionStringName"];
+
+            if (string.IsNullOrEmpty(temp))
+                throw new ProviderException(StringResources.GetString(StringResources.Connection_name_not_specified));
+
+            _connectionString = SecUtility.GetConnectionString(temp, true, true);
+
+            if (string.IsNullOrEmpty(_connectionString))
+            {
+                throw new ProviderException(StringResources.GetString(StringResources.Connection_string_not_found, temp));
+            }
+
             config.Remove("connectionStringName");
             config.Remove("enablePasswordRetrieval");
             config.Remove("enablePasswordReset");
@@ -223,18 +216,6 @@ namespace ExtendedMongoMembership
                 {
                     throw new ProviderException(String.Format(CultureInfo.CurrentCulture, WebDataResources.SimpleMembership_ProviderUnrecognizedAttribute, attribUnrecognized));
                 }
-            }
-
-            string temp = config["connectionStringName"];
-
-            if (string.IsNullOrEmpty(temp))
-                throw new ProviderException(StringResources.GetString(StringResources.Connection_name_not_specified));
-
-            _connectionString = SecUtility.GetConnectionString(temp, true, true);
-
-            if (string.IsNullOrEmpty(_connectionString))
-            {
-                throw new ProviderException(StringResources.GetString(StringResources.Connection_string_not_found, temp));
             }
         }
 
@@ -292,7 +273,7 @@ namespace ExtendedMongoMembership
             VerifyInitialized();
             using (var session = new MongoSession(_connectionString))
             {
-                return GetUserId(session, UserTableName, UserNameColumn, UserIdColumn, userName);
+                return GetUserId(session, UserTableName, UserNameColumn, userName);
             }
         }
 
@@ -311,10 +292,10 @@ namespace ExtendedMongoMembership
             }
         }
 
-        internal static int GetUserId(MongoSession session, string userTableName, string userNameColumn, string userIdColumn, string userName)
+        internal static int GetUserId(MongoSession session, string userTableName, string userNameColumn, string userName)
         {
             int result;
-            result = session.GetUserId(userTableName, userNameColumn, userIdColumn, userName);
+            result = session.GetUserId(userTableName, userNameColumn, userName);
             return result;
         }
 
@@ -445,7 +426,7 @@ namespace ExtendedMongoMembership
             {
                 // Step 1: Check if the user exists in the Users table
 
-                int uid = GetUserId(session, UserTableName, UserNameColumn, UserIdColumn, userName);
+                int uid = GetUserId(session, UserTableName, UserNameColumn, userName);
                 if (uid == -1)
                 {
                     // User not found
@@ -475,6 +456,7 @@ namespace ExtendedMongoMembership
                     MembershipAccount account = new MembershipAccount
                     {
                         UserId = uid,
+                        UserName = userName,
                         Password = hashedPassword,
                         PasswordSalt = string.Empty,
                         IsConfirmed = !requireConfirmationToken,
@@ -507,13 +489,13 @@ namespace ExtendedMongoMembership
         private void CreateUserRow(MongoSession session, string userName, IDictionary<string, object> values)
         {
             // Make sure user doesn't exist
-            int userId = GetUserId(session, UserTableName, UserNameColumn, UserIdColumn, userName);
+            int userId = GetUserId(session, UserTableName, UserNameColumn, userName);
             if (userId != -1)
             {
                 throw new MembershipCreateUserException(MembershipCreateStatus.DuplicateUserName);
             }
 
-            bool result = session.CreateUserRow(userId, userName, UserNameColumn, values);
+            bool result = session.CreateUserRow(userName, UserNameColumn, UserTableName, values);
 
             if (!result)
             {
@@ -590,7 +572,7 @@ namespace ExtendedMongoMembership
 
             using (var session = new MongoSession(_connectionString))
             {
-                int userId = GetUserId(session, UserTableName, UserNameColumn, UserIdColumn, username);
+                int userId = GetUserId(session, UserTableName, UserNameColumn, username);
                 if (userId == -1)
                 {
                     return false; // User not found
@@ -637,7 +619,7 @@ namespace ExtendedMongoMembership
             // Due to a bug in v1, GetUser allows passing null / empty values.
             using (var session = new MongoSession(_connectionString))
             {
-                int userId = GetUserId(session, UserTableName, UserNameColumn, UserIdColumn, username);
+                int userId = GetUserId(session, UserTableName, UserNameColumn, username);
                 if (userId == -1)
                 {
                     return null; // User not found
@@ -664,7 +646,7 @@ namespace ExtendedMongoMembership
 
             using (var session = new MongoSession(_connectionString))
             {
-                int userId = GetUserId(session, UserTableName, UserNameColumn, UserIdColumn, userName);
+                int userId = GetUserId(session, UserTableName, UserNameColumn, userName);
                 if (userId == -1)
                 {
                     return false; // User not found
@@ -693,7 +675,7 @@ namespace ExtendedMongoMembership
 
             using (var session = new MongoSession(_connectionString))
             {
-                int userId = GetUserId(session, UserTableName, UserNameColumn, UserIdColumn, username);
+                int userId = GetUserId(session, UserTableName, UserNameColumn, username);
                 if (userId == -1)
                 {
                     return false; // User not found
@@ -775,7 +757,7 @@ namespace ExtendedMongoMembership
         {
             using (var session = new MongoSession(_connectionString))
             {
-                int userId = GetUserId(session, UserTableName, UserNameColumn, UserIdColumn, userName);
+                int userId = GetUserId(session, UserTableName, UserNameColumn, userName);
                 if (userId == -1)
                 {
                     throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.Security_NoUserFound, userName));
@@ -1315,6 +1297,21 @@ namespace ExtendedMongoMembership
                 var user = session.Users.FirstOrDefault(x => x.UserId == userId);
                 return user != null;
             }
+        }
+
+
+        public static void Init(string userTableName, string userNameColumn)
+        {
+            MongoMembershipProvider simpleMembership = Membership.Provider as MongoMembershipProvider;
+            if (simpleMembership == null)
+            {
+                throw new InvalidOperationException(WebDataResources.Security_NoExtendedMembershipProvider);
+            }
+            simpleMembership.InitializeCalled = true;
+
+
+            simpleMembership.UserTableName = userTableName;
+            simpleMembership.UserNameColumn = userNameColumn;
         }
     }
 }

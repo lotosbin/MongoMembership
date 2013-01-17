@@ -172,7 +172,7 @@ namespace ExtendedMongoMembership
             return int.Parse(result.ModifiedDocument[1].ToString());
         }
 
-        public int GetUserId(string userTableName, string userNameColumn, string userIdColumn, string userName)
+        public int GetUserId(string userTableName, string userNameColumn, string userName)
         {
             var collection = _provider.GetCollection(userTableName);
             IMongoQuery query = Query.EQ(userNameColumn, userName);
@@ -180,19 +180,23 @@ namespace ExtendedMongoMembership
             if (result == null)
                 return -1;
 
-            return result[userIdColumn].AsInt32;
+            return result["_id"].AsInt32;
         }
 
-        public bool CreateUserRow(int userId, string userName, string UserNameColumn, IDictionary<string, object> values)
+        public bool CreateUserRow(string userName, string UserNameColumn, string userTableName, IDictionary<string, object> values)
         {
             List<BsonElement> elements = new List<BsonElement>();
             elements.Add(new BsonElement(UserNameColumn, userName));
-            foreach (var item in values)
+            elements.Add(new BsonElement("_id", GetNextSequence(userTableName + "_id")));
+            if (values != null)
             {
-                elements.Add(new BsonElement(item.Key, item.Value as BsonValue));
+                foreach (var item in values)
+                {
+                    elements.Add(new BsonElement(item.Key, item.Value as BsonValue));
+                }
             }
 
-            var collection = _provider.GetCollection("Users");
+            var collection = _provider.GetCollection(userTableName);
             var result = collection.Insert(new BsonDocument(elements.ToArray()));
             return result.LastErrorMessage == null;
         }

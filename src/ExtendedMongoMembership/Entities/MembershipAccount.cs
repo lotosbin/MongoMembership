@@ -9,6 +9,7 @@ namespace ExtendedMongoMembership
         public MembershipAccount()
         {
             Roles = new List<MembershipRole>();
+            OAuthData = new List<OAuthAccountDataEmbedded>();
         }
 
         [BsonId]

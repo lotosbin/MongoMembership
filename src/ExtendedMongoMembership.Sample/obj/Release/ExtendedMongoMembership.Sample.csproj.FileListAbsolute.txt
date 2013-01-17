@@ -47,3 +47,11 @@ E:\use\In House\Open Source\extendedmongomembership\use.extendedmongomembership\
 E:\use\In House\Open Source\extendedmongomembership\use.extendedmongomembership\src\ExtendedMongoMembership.Sample\obj\Release\ExtendedMongoMembership.Sample.csprojResolveAssemblyReference.cache
 E:\use\In House\Open Source\extendedmongomembership\use.extendedmongomembership\src\ExtendedMongoMembership.Sample\obj\Release\ExtendedMongoMembership.Sample.dll
 E:\use\In House\Open Source\extendedmongomembership\use.extendedmongomembership\src\ExtendedMongoMembership.Sample\obj\Release\ExtendedMongoMembership.Sample.pdb
+E:\use\In House\Open Source\extendedmongomembership\use.extendedmongomembership\src\ExtendedMongoMembership.Sample\bin\ExtendedMongoMembership.dll
+E:\use\In House\Open Source\extendedmongomembership\use.extendedmongomembership\src\ExtendedMongoMembership.Sample\bin\MongoDB.Bson.dll
+E:\use\In House\Open Source\extendedmongomembership\use.extendedmongomembership\src\ExtendedMongoMembership.Sample\bin\MongoDB.Driver.dll
+E:\use\In House\Open Source\extendedmongomembership\use.extendedmongomembership\src\ExtendedMongoMembership.Sample\bin\ExtendedMongoMembership.pdb
+E:\use\In House\Open Source\extendedmongomembership\use.extendedmongomembership\src\ExtendedMongoMembership.Sample\bin\MongoDB.Bson.pdb
+E:\use\In House\Open Source\extendedmongomembership\use.extendedmongomembership\src\ExtendedMongoMembership.Sample\bin\MongoDB.Bson.xml
+E:\use\In House\Open Source\extendedmongomembership\use.extendedmongomembership\src\ExtendedMongoMembership.Sample\bin\MongoDB.Driver.pdb
+E:\use\In House\Open Source\extendedmongomembership\use.extendedmongomembership\src\ExtendedMongoMembership.Sample\bin\MongoDB.Driver.xml

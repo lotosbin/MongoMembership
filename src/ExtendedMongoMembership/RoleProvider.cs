@@ -7,8 +7,6 @@ using System.Web.Security;
 
 namespace ExtendedMongoMembership
 {
-
-
     public class MongoRoleProvider : RoleProvider
     {
         private string _AppName;
@@ -161,8 +159,7 @@ namespace ExtendedMongoMembership
                 {
 
                     var roles = from r in session.Roles
-                                where
-                                    r.RoleName == roleName
+                                where r.RoleName == roleName
                                 select r;
 
                     if (roles.Any())
@@ -198,8 +195,7 @@ namespace ExtendedMongoMembership
                 {
 
                     var role = (from r in session.Roles
-                                where
-                                    r.RoleName == roleName
+                                where r.RoleName == roleName
                                 select r).SingleOrDefault();
 
 
@@ -238,8 +234,7 @@ namespace ExtendedMongoMembership
                 {
 
                     var role = (from r in session.Roles
-                                where
-                                    r.RoleName == roleName
+                                where r.RoleName == roleName
                                 select r).SingleOrDefault();
 
 
