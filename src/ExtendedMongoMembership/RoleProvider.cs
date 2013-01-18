@@ -1,472 +1,372 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Configuration.Provider;
+using System.Globalization;
 using System.Linq;
 using System.Web.Security;
+using WebMatrix.WebData.Resources;
 
 namespace ExtendedMongoMembership
 {
-    public class MongoRoleProvider : RoleProvider
+    public class MongoRoleProvider// : RoleProvider
     {
-        private string _AppName;
-        private int? _AppId;
-        private string _mongoConnectionString;
+        private RoleProvider _previousProvider;
 
-
-
-        public override void Initialize(string name, NameValueCollection config)
+        public MongoRoleProvider()
+            : this(null)
         {
-            if (config == null)
-                throw new ArgumentNullException("config");
-
-            if (String.IsNullOrEmpty(name))
-                name = "EazyRoleProviderMongoDb";
-            if (string.IsNullOrEmpty(config["description"]))
-            {
-                config.Remove("description");
-                config.Add("description", "EazyRole Provider for MongoDb");
-            }
-            base.Initialize(name, config);
-
-
-            string temp = config["connectionStringName"];
-
-            if (string.IsNullOrEmpty(temp))
-                throw new ProviderException(StringResources.GetString(StringResources.Connection_name_not_specified));
-
-            _mongoConnectionString = SecUtility.GetConnectionString(temp, true, true);
-
-            if (string.IsNullOrEmpty(_mongoConnectionString))
-            {
-                throw new ProviderException(StringResources.GetString(StringResources.Connection_string_not_found, temp));
-            }
-
-            _AppName = config["applicationName"];
-
-            if (string.IsNullOrEmpty(_AppName))
-                _AppName = SecUtility.GetDefaultAppName();
-
-            if (_AppName.Length > 256)
-            {
-                throw new ProviderException(StringResources.GetString(StringResources.Provider_application_name_too_long));
-            }
-
-            config.Remove("connectionStringName");
-            config.Remove("applicationName");
-            config.Remove("commandTimeout");
-
-            if (config.Count > 0)
-            {
-                string attribUnrecognized = config.GetKey(0);
-                if (!String.IsNullOrEmpty(attribUnrecognized))
-                    throw new ProviderException(StringResources.GetString(StringResources.Provider_unrecognized_attribute, attribUnrecognized));
-            }
         }
 
-
-        public override bool IsUserInRole(string username, string roleName)
+        public MongoRoleProvider(RoleProvider previousProvider)
         {
-            SecUtility.CheckParameter(ref roleName, true, true, true, 256, "roleName");
-            SecUtility.CheckParameter(ref username, true, false, true, 256, "username");
-            if (username.Length < 1)
-                return false;
+            _previousProvider = previousProvider;
+        }
 
-            try
+        private RoleProvider PreviousProvider
+        {
+            get
             {
-
-                using (var session = new MongoSession(_mongoConnectionString))
+                if (_previousProvider == null)
                 {
-
-                    //var check = (from r in session.Roles
-                    //             where
-                    //                 r.Users.Any(u => u.UserName == username)
-                    //                 && r.RoleName == roleName
-                    //                 && r.ApplicationId==_AppId select r).Any();
-
-
-
-                    var user = (from u in session.Users
-                                where u.UserName == username
-                                select u).SingleOrDefault();
-
-                    if (user == null)
-                        return false;
-
-                    if (user.Roles == null)
-                        return false;
-
-                    if (user.Roles.Where(r => r.RoleName == roleName).Any())
-                        return true;
-
-                    return false;
-
+                    throw new InvalidOperationException(WebDataResources.Security_InitializeMustBeCalledFirst);
                 }
-
-
-            }
-            catch
-            {
-                throw;
-            }
-
-        }
-
-
-        public override string[] GetRolesForUser(string username)
-        {
-            SecUtility.CheckParameter(ref username, true, false, true, 256, "username");
-            if (username.Length < 1)
-                return new string[0];
-
-            try
-            {
-
-                using (var session = new MongoSession(_mongoConnectionString))
+                else
                 {
-
-                    var user = (from u in session.Users
-                                where u.UserName == username
-                                select u).SingleOrDefault();
-
-                    if (user == null)
-                        return new string[0];
-
-                    if (user.Roles == null)
-                        return new string[0];
-
-                    return user.Roles.Select(r => r.RoleName).ToArray();
-
-
-                }
-
-
-            }
-            catch
-            {
-                throw;
-            }
-        }
-
-
-        public override void CreateRole(string roleName)
-        {
-            SecUtility.CheckParameter(ref roleName, true, true, true, 256, "roleName");
-            try
-            {
-
-                using (var session = new MongoSession(_mongoConnectionString))
-                {
-
-                    var roles = from r in session.Roles
-                                where r.RoleName == roleName
-                                select r;
-
-                    if (roles.Any())
-                    {
-                        throw new ProviderException(StringResources.GetString(StringResources.Provider_role_already_exists, roleName));
-                    }
-
-
-                    var role = new MembershipRole
-                                   {
-                                       RoleName = roleName,
-                                       LoweredRoleName = roleName.ToLowerInvariant()
-                                   };
-
-                    session.Add(role);
-                }
-
-            }
-            catch
-            {
-                throw;
-            }
-        }
-
-
-        public override bool DeleteRole(string roleName, bool throwOnPopulatedRole)
-        {
-            SecUtility.CheckParameter(ref roleName, true, true, true, 256, "roleName");
-            try
-            {
-
-                using (var session = new MongoSession(_mongoConnectionString))
-                {
-
-                    var role = (from r in session.Roles
-                                where r.RoleName == roleName
-                                select r).SingleOrDefault();
-
-
-                    var users = (from u in session.Users
-                                 where u.Roles != null &&
-                                     u.Roles.Where(r => r.RoleName == roleName).Any()
-                                 select u);
-
-                    if (users.Any() && throwOnPopulatedRole)
-                    {
-                        throw new ProviderException(StringResources.GetString(StringResources.Role_is_not_empty));
-                    }
-
-                    session.DeleteById<MembershipRole>(role.RoleId);
-
-                    return true;
-
-                }
-
-
-            }
-            catch
-            {
-                throw;
-            }
-        }
-
-
-        public override bool RoleExists(string roleName)
-        {
-            SecUtility.CheckParameter(ref roleName, true, true, true, 256, "roleName");
-
-            try
-            {
-                using (var session = new MongoSession(_mongoConnectionString))
-                {
-
-                    var role = (from r in session.Roles
-                                where r.RoleName == roleName
-                                select r).SingleOrDefault();
-
-
-                    return (role != null);
-
+                    return _previousProvider;
                 }
             }
-            catch
+        }
+
+        // represents the User table for the app
+        public string UserTableName { get; set; }
+
+        // represents the User created UserName column, i.e. Email
+        public string UserNameColumn { get; set; }
+
+        internal bool InitializeCalled { get; set; }
+
+        private string _connectionString;
+
+        internal virtual ISession ConnectToDatabase(string connectionString)
+        {
+            return ConnectToDatabase(connectionString);
+        }
+
+        private void VerifyInitialized()
+        {
+            if (!InitializeCalled)
             {
-                throw;
+                throw new InvalidOperationException(WebDataResources.Security_InitializeMustBeCalledFirst);
             }
         }
 
+        private List<MembershipAccount> GetUsersFromNames(ISession session, string[] usernames)
+        {
+            List<MembershipAccount> users = new List<MembershipAccount>(usernames.Length);
+            foreach (string username in usernames)
+            {
+                var user = MongoMembershipProvider.GetUser(session, username);
+                users.Add(user);
+            }
+            return users;
+        }
 
+        private static List<MembershipRole> GetRolesFromNames(ISession session, string[] roleNames)
+        {
+            List<MembershipRole> roles = new List<MembershipRole>(roleNames.Length);
+            foreach (string role in roleNames)
+            {
+                MembershipRole r = FindRole(session, role);
+                if (r == null)
+                {
+                    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.SimpleRoleProvider_NoRoleFound, role));
+                }
+                roles.Add(r);
+            }
+            return roles;
+        }
 
+        // Inherited from RoleProvider ==> Forwarded to previous provider if this provider hasn't been initialized
         public override void AddUsersToRoles(string[] usernames, string[] roleNames)
         {
-            SecUtility.CheckArrayParameter(ref roleNames, true, true, true, 256, "roleNames");
-            SecUtility.CheckArrayParameter(ref usernames, true, true, true, 256, "usernames");
-
-            try
+            if (!InitializeCalled)
             {
-
-                List<string> _usernames = usernames.ToList();
-                List<string> _roleNames = roleNames.ToList();
-
-                using (var session = new MongoSession(_mongoConnectionString))
+                PreviousProvider.AddUsersToRoles(usernames, roleNames);
+            }
+            else
+            {
+                using (var session = ConnectToDatabase(_connectionString))
                 {
+                    int userCount = usernames.Length;
+                    int roleCount = roleNames.Length;
+                    List<MembershipAccount> users = GetUsersFromNames(session, usernames);
+                    List<MembershipRole> roles = GetRolesFromNames(session, roleNames);
 
-                    var users = (from u in session.Users
-                                 where _usernames.Contains(u.UserName)
-                                 select u).ToList();
-
-                    var roles = (from r in session.Roles
-                                 where _roleNames.Contains(r.RoleName)
-                                 select r).ToList();
-
-                    foreach (var userEntity in users)
+                    // Generate a INSERT INTO for each userid/rowid combination, where userIds are the first params, and roleIds follow
+                    for (int uId = 0; uId < userCount; uId++)
                     {
-                        if (userEntity.Roles != null && userEntity.Roles.Any())
+                        for (int rId = 0; rId < roleCount; rId++)
                         {
-                            var newRoles = roles.Except(userEntity.Roles);
-                            userEntity.Roles.AddRange(newRoles);
-
+                            if (IsUserInRole(usernames[uId], roleNames[rId]))
+                            {
+                                throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.SimpleRoleProvder_UserAlreadyInRole, usernames[uId], roleNames[rId]));
+                            }
+                            var user = users[uId];
+                            user.Roles.Add(roles[rId]);
+                            try
+                            {
+                                session.Save(user);
+                            }
+                            catch (Exception e)
+                            {
+                                throw new ProviderException(WebDataResources.Security_DbFailure);
+                            }
                         }
-                        else
-                        {
-                            userEntity.Roles = new List<MembershipRole>();
-                            userEntity.Roles.AddRange(roles);
-                        }
+                    }
+                }
+            }
+        }
 
-                        session.Save(userEntity);
-
+        // Inherited from RoleProvider ==> Forwarded to previous provider if this provider hasn't been initialized
+        public override void CreateRole(string roleName)
+        {
+            if (!InitializeCalled)
+            {
+                PreviousProvider.CreateRole(roleName);
+            }
+            else
+            {
+                using (var session = ConnectToDatabase(_connectionString))
+                {
+                    var role = FindRole(session, roleName);
+                    if (role != null)
+                    {
+                        throw new InvalidOperationException(String.Format(CultureInfo.InvariantCulture, WebDataResources.SimpleRoleProvider_RoleExists, roleName));
                     }
 
-
-                }
-
-            }
-            catch
-            {
-                throw;
-            }
-        }
-
-
-        public override void RemoveUsersFromRoles(string[] usernames, string[] roleNames)
-        {
-            SecUtility.CheckArrayParameter(ref roleNames, true, true, true, 256, "roleNames");
-            SecUtility.CheckArrayParameter(ref usernames, true, true, true, 256, "usernames");
-
-            try
-            {
-                List<string> _usernames = usernames.ToList();
-                List<string> _roleNames = roleNames.ToList();
-
-                using (var session = new MongoSession(_mongoConnectionString))
-                {
-
-                    var users = (from u in session.Users
-                                 where _usernames.Contains(u.UserName)
-                                 select u).ToList();
-
-                    var roles = (from r in session.Roles
-                                 where _roleNames.Contains(r.RoleName)
-                                 select r).ToList();
-
-                    foreach (var userEntity in users)
+                    MembershipRole newRole = new MembershipRole
                     {
-                        if (userEntity.Roles != null && userEntity.Roles.Any())
-                        {
-                            var matchedRoles = roles.Intersect(userEntity.Roles);
+                        RoleName = roleName
+                    };
 
-                            foreach (var matchedRole in matchedRoles)
-                                userEntity.Roles.Remove(matchedRole);
-
-                            if (matchedRoles.Any())
-                                session.Save(userEntity);
-
-                        }
-
-
-
-                    }
-
-
-                }
-
-            }
-            catch
-            {
-                throw;
-            }
-        }
-
-
-
-        public override string[] GetUsersInRole(string roleName)
-        {
-            SecUtility.CheckParameter(ref roleName, true, true, true, 256, "roleName");
-
-            try
-            {
-
-                using (var session = new MongoSession(_mongoConnectionString))
-                {
-
-                    var role = (from r in session.Roles
-                                where r.RoleName == roleName
-                                select r).SingleOrDefault();
-
-                    if (role == null)
+                    try
                     {
-                        throw new ProviderException(StringResources.GetString(StringResources.Provider_role_not_found, roleName));
+                        session.Save(newRole);
                     }
-
-                    var users = from u in session.Users
-                                where u.Roles.Any(r => r.RoleName == roleName)
-                                select u;
-
-                    if (users == null || !users.Any())
-                        return new string[0];
-
-                    return users.Select(u => u.UserName).ToArray();
-
+                    catch (Exception e)
+                    {
+                        throw new ProviderException(WebDataResources.Security_DbFailure);
+                    }
                 }
-
-            }
-            catch
-            {
-                throw;
             }
         }
 
-
-
-        public override string[] GetAllRoles()
+        // Inherited from RoleProvider ==> Forwarded to previous provider if this provider hasn't been initialized
+        public override bool DeleteRole(string roleName, bool throwOnPopulatedRole)
         {
-            try
+            if (!InitializeCalled)
             {
-                using (var session = new MongoSession(_mongoConnectionString))
-                {
-
-                    var roles = from r in session.Roles
-                                select r;
-
-                    if (roles == null || !roles.Any())
-                        return new string[0];
-
-                    return roles.Select(u => u.RoleName).ToArray();
-
-                }
+                return PreviousProvider.DeleteRole(roleName, throwOnPopulatedRole);
             }
-            catch
+            using (var session = ConnectToDatabase(_connectionString))
             {
-                throw;
+                var role = FindRole(session, roleName);
+                if (role == null)
+                {
+                    return false;
+                }
+
+                if (throwOnPopulatedRole)
+                {
+                    int usersInRole = session.Roles.Count(x => x.Id == role.Id);
+
+                    if (usersInRole > 0)
+                    {
+                        throw new InvalidOperationException(String.Format(CultureInfo.InvariantCulture, WebDataResources.SimpleRoleProvder_RolePopulated, roleName));
+                    }
+                }
+                else
+                {
+                    // Delete any users in this role first
+                    session.DeleteById<MembershipRole>(role.Id);
+                }
+
+                try
+                {
+                    foreach (var usr in session.Users.Where(x => x.Roles.Any(y => y.Id == role.Id)).ToList())
+                    {
+                        usr.Roles = usr.Roles.Where(x => x.Id != role.Id).ToList();
+                        session.Save(usr);
+                    }
+                    return true;
+                }
+                catch (Exception e)
+                {
+                    return false;
+                }
+                //return (rows == 1); // REVIEW: should this ever be > 1?
             }
         }
 
-
+        // Inherited from RoleProvider ==> Forwarded to previous provider if this provider hasn't been initialized
         public override string[] FindUsersInRole(string roleName, string usernameToMatch)
         {
-            SecUtility.CheckParameter(ref roleName, true, true, true, 256, "roleName");
-            SecUtility.CheckParameter(ref usernameToMatch, true, true, false, 256, "usernameToMatch");
-
-            try
+            if (!InitializeCalled)
             {
-
-                using (var session = new MongoSession(_mongoConnectionString))
-                {
-
-                    var role = (from r in session.Roles
-                                where r.RoleName == roleName
-                                select r).SingleOrDefault();
-
-                    if (role == null)
-                    {
-                        throw new ProviderException(StringResources.GetString(StringResources.Provider_role_not_found, roleName));
-                    }
-
-                    var users = from u in session.Users
-                                where u.UserName == usernameToMatch &&
-                                u.Roles.Any(r => r.RoleName == roleName)
-                                select u;
-
-                    if (users == null || !users.Any())
-                        return new string[0];
-
-                    return users.Select(u => u.UserName).ToArray();
-
-                }
-
+                return PreviousProvider.FindUsersInRole(roleName, usernameToMatch);
             }
-            catch
+            using (var session = ConnectToDatabase(_connectionString))
             {
-                throw;
+                // REVIEW: Is there any way to directly get out a string[]?
+                List<MembershipAccount> result = session
+                    .Users
+                    .ToList()
+                    .Where(y => y.Roles.Any(x => x.RoleName == roleName) &&
+                        y.UserName.Contains(usernameToMatch))
+                    .ToList();
+
+                string[] users = new string[result.Count];
+                for (int i = 0; i < result.Count; i++)
+                {
+                    users[i] = result[i].UserName;
+                }
+                return users;
             }
         }
 
-
-
-        public override string ApplicationName
+        // Inherited from RoleProvider ==> Forwarded to previous provider if this provider hasn't been initialized
+        public override string[] GetAllRoles()
         {
-            get { return _AppName; }
-            set
+            if (!InitializeCalled)
             {
-                _AppName = value;
+                return PreviousProvider.GetAllRoles();
+            }
+            using (var session = ConnectToDatabase(_connectionString))
+            {
+                return session.Roles.Select(x => x.RoleName).ToArray();
+            }
+        }
 
-                if (_AppName.Length > 256)
+        // Inherited from RoleProvider ==> Forwarded to previous provider if this provider hasn't been initialized
+        public override string[] GetRolesForUser(string username)
+        {
+            if (!InitializeCalled)
+            {
+                return PreviousProvider.GetRolesForUser(username);
+            }
+            using (var session = ConnectToDatabase(_connectionString))
+            {
+                var user = MongoMembershipProvider.GetUser(session, username);
+                if (user == null)
                 {
-                    throw new ProviderException(StringResources.GetString(StringResources.Provider_application_name_too_long));
+                    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.Security_NoUserFound, username));
                 }
+
+                return user.Roles.Select(x => x.RoleName).ToArray();
+            }
+        }
+
+        // Inherited from RoleProvider ==> Forwarded to previous provider if this provider hasn't been initialized
+        public override string[] GetUsersInRole(string roleName)
+        {
+            if (!InitializeCalled)
+            {
+                return PreviousProvider.GetUsersInRole(roleName);
+            }
+            using (var session = ConnectToDatabase(_connectionString))
+            {
+                return session
+                    .Users
+                    .Where(x => x.Roles.Any(y => y.RoleName == roleName))
+                    .Select(x => x.UserName)
+                    .ToArray();
+            }
+        }
+
+        // Inherited from RoleProvider ==> Forwarded to previous provider if this provider hasn't been initialized
+        public override bool IsUserInRole(string username, string roleName)
+        {
+            if (!InitializeCalled)
+            {
+                return PreviousProvider.IsUserInRole(username, roleName);
+            }
+            using (var session = ConnectToDatabase(_connectionString))
+            {
+                var usr = session.Users.FirstOrDefault(x => x.Roles.Any(y => y.RoleName == roleName) && x.UserName == username);
+                return (usr != null);
+            }
+        }
+
+        // Inherited from RoleProvider ==> Forwarded to previous provider if this provider hasn't been initialized
+        public override void RemoveUsersFromRoles(string[] usernames, string[] roleNames)
+        {
+            if (!InitializeCalled)
+            {
+                PreviousProvider.RemoveUsersFromRoles(usernames, roleNames);
+            }
+            else
+            {
+                foreach (string rolename in roleNames)
+                {
+                    if (!RoleExists(rolename))
+                    {
+                        throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.SimpleRoleProvider_NoRoleFound, rolename));
+                    }
+                }
+
+                foreach (string username in usernames)
+                {
+                    foreach (string rolename in roleNames)
+                    {
+                        if (!IsUserInRole(username, rolename))
+                        {
+                            throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.SimpleRoleProvder_UserNotInRole, username, rolename));
+                        }
+                    }
+                }
+
+                using (var session = ConnectToDatabase(_connectionString))
+                {
+                    List<MembershipAccount> users = GetUsersFromNames(session, usernames);
+
+                    foreach (var user in users)
+                    {
+                        foreach (var role in roleNames)
+                        {
+                            user.Roles = user
+                                .Roles
+                                .Where(x => x.RoleName != role)
+                                .ToList();
+                        }
+
+                        try
+                        {
+                            session.Save(user);
+                        }
+                        catch (Exception e)
+                        {
+                            throw new ProviderException(WebDataResources.Security_DbFailure);
+                        }
+                    }
+                }
+            }
+        }
+
+        private static MembershipRole FindRole(ISession session, string roleName)
+        {
+            return session.Roles.FirstOrDefault(x => x.RoleName == roleName);
+        }
+
+        // Inherited from RoleProvider ==> Forwarded to previous provider if this provider hasn't been initialized
+        public override bool RoleExists(string roleName)
+        {
+            if (!InitializeCalled)
+            {
+                return PreviousProvider.RoleExists(roleName);
+            }
+            using (var session = ConnectToDatabase(_connectionString))
+            {
+                return (FindRole(session, roleName) != null);
             }
         }
 

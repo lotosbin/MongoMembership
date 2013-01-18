@@ -62,7 +62,24 @@ namespace ExtendedMongoMembership
 
         public List<MembershipRole> Roles { get; set; }
 
-        public string UserName { get; set; }
+        private string _userName;
+        public string UserName
+        {
+            get
+            {
+                return _userName;
+            }
+            set
+            {
+                if (!string.IsNullOrEmpty(_userName))
+                {
+                    LoweredUserName = value.ToLower();
+                }
+                _userName = value;
+            }
+        }
+
+        public string LoweredUserName { get; set; }
 
         public List<OAuthAccountDataEmbedded> OAuthData { get; set; }
     }

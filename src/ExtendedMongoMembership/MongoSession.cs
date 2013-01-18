@@ -12,7 +12,7 @@ namespace ExtendedMongoMembership
 {
 
     /*internal*/
-    public class MongoSession : IDisposable
+    public class MongoSession : ISession
     {
         private MongoClient _client;
         private MongoServer _server;
@@ -34,7 +34,7 @@ namespace ExtendedMongoMembership
             _provider = _server.GetDatabase(_connectionString.Substring(last > -1 ? last + 1 : 0), WriteConcern.Acknowledged);
         }
 
-        public MongoDatabase MongoDatabase { get { return this._provider; } }
+        private MongoDatabase MongoDatabase { get { return this._provider; } }
 
 
         public IQueryable<MembershipAccount> Users
@@ -60,25 +60,6 @@ namespace ExtendedMongoMembership
         }
 
         #endregion
-
-        //public T MapReduce<T>(string map, string reduce)
-        //{
-        //    T result = default(T);
-        //    MapReduce mr = _provider.Database.CreateMapReduce();
-
-        //    MapReduceResponse response =
-        //        mr.Execute(new MapReduceOptions(typeof(T).Name)
-        //        {
-        //            Map = map,
-        //            Reduce = reduce
-        //        });
-
-        //    IMongoCollection<MapReduceResult<T>> coll = response.GetCollection<MapReduceResult<T>>();
-        //    MapReduceResult<T> r = coll.Find().FirstOrDefault();
-        //    result = r.Value;
-
-        //    return result;
-        //}
 
         public void Add<T>(T item) where T : class
         {

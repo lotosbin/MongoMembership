@@ -7,13 +7,28 @@ namespace ExtendedMongoMembership
     {
         public MembershipRole()
         {
-            RoleId = Guid.NewGuid();
+            Id = Guid.NewGuid();
         }
 
         [BsonId]
-        public Guid RoleId { get; set; }
-        public string RoleName { get; set; }
+        public Guid Id { get; set; }
+
+        private string _roleName { get; set; }
+        public string RoleName
+        {
+            get
+            {
+                return _roleName;
+            }
+            set
+            {
+                if (!string.IsNullOrEmpty(value))
+                    LoweredRoleName = value.ToLower();
+                _roleName = value;
+            }
+        }
+
         public string LoweredRoleName { get; set; }
-        public string Description { get; set; }
+        //public string Description { get; set; }
     }
 }
