@@ -56,6 +56,7 @@
     <Compile Include="Entities\OAuthToken.cs" />
     <Compile Include="ISession.cs" />
     <Compile Include="MongoSession.cs" />
+    <Compile Include="MongoWebSecurity.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Entities\MembershipRole.cs" />
     <Compile Include="Resources\WebDataResources.Designer.cs" />

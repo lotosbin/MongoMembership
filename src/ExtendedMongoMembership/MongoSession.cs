@@ -96,15 +96,45 @@ namespace ExtendedMongoMembership
             _provider.GetCollection<T>(GetCollectionName<T>()).Remove(query);
         }
 
-        public void DeleteById<T>(object id) where T : class
+        public void DeleteById<T>(int id) where T : class
         {
-            IMongoQuery query = Query.EQ("_id", id.ToString());
+            IMongoQuery query = Query.EQ("_id", id);
+            _provider.GetCollection<T>(GetCollectionName<T>()).Remove(query);
+        }
+
+        public void DeleteById<T>(Guid id) where T : class
+        {
+            IMongoQuery query = Query.EQ("_id", id);
+            _provider.GetCollection<T>(GetCollectionName<T>()).Remove(query);
+        }
+
+        public void DeleteById<T>(string id) where T : class
+        {
+            IMongoQuery query = Query.EQ("_id", id);
             _provider.GetCollection<T>(GetCollectionName<T>()).Remove(query);
         }
 
         public void DeleteById(object id, string collectionName)
         {
             IMongoQuery query = Query.EQ("_id", id.ToString());
+            _provider.GetCollection(collectionName).Remove(query);
+        }
+
+        public void DeleteById(int id, string collectionName)
+        {
+            IMongoQuery query = Query.EQ("_id", id);
+            _provider.GetCollection(collectionName).Remove(query);
+        }
+
+        public void DeleteById(Guid id, string collectionName)
+        {
+            IMongoQuery query = Query.EQ("_id", id);
+            _provider.GetCollection(collectionName).Remove(query);
+        }
+
+        public void DeleteById(string id, string collectionName)
+        {
+            IMongoQuery query = Query.EQ("_id", id);
             _provider.GetCollection(collectionName).Remove(query);
         }
 

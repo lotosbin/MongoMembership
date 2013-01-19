@@ -20,7 +20,7 @@ namespace ExtendedMongoMembership.Sample
             BundleConfig.RegisterBundles(BundleTable.Bundles);
             AuthConfig.RegisterAuth();
 
-            MongoMembershipProvider.Init("UserProfiles", "UserName");
+            MongoWebSecurity.Init("UserProfiles", "UserName");
         }
     }
 }

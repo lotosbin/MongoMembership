@@ -26,7 +26,7 @@ namespace ExtendedMongoMembership
 
         public MongoMembershipProvider(MembershipProvider previousProvider)
         {
-            InitializeCalled = true;
+            //InitializeCalled = true;
             _previousProvider = previousProvider;
             if (_previousProvider != null)
             {
@@ -155,7 +155,7 @@ namespace ExtendedMongoMembership
 
         protected virtual ISession ConnectToDatabase(string connectionString)
         {
-            return ConnectToDatabase(connectionString);
+            return new MongoSession(connectionString);
         }
 
         protected virtual void VerifyInitialized()
@@ -1244,21 +1244,6 @@ namespace ExtendedMongoMembership
                 var user = session.Users.FirstOrDefault(x => x.UserId == userId);
                 return user != null;
             }
-        }
-
-
-        public static void Init(string userTableName, string userNameColumn)
-        {
-            MongoMembershipProvider simpleMembership = Membership.Provider as MongoMembershipProvider;
-            if (simpleMembership == null)
-            {
-                throw new InvalidOperationException(WebDataResources.Security_NoExtendedMembershipProvider);
-            }
-            simpleMembership.InitializeCalled = true;
-
-
-            simpleMembership.UserTableName = userTableName;
-            simpleMembership.UserNameColumn = userNameColumn;
         }
     }
 }

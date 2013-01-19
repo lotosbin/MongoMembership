@@ -71,7 +71,7 @@ namespace ExtendedMongoMembership
             }
             set
             {
-                if (!string.IsNullOrEmpty(_userName))
+                if (!string.IsNullOrEmpty(value))
                 {
                     LoweredUserName = value.ToLower();
                 }

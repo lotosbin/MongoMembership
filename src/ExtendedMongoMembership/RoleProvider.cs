@@ -8,7 +8,7 @@ using WebMatrix.WebData.Resources;
 
 namespace ExtendedMongoMembership
 {
-    public class MongoRoleProvider// : RoleProvider
+    public class MongoRoleProvider : RoleProvider
     {
         private RoleProvider _previousProvider;
 
@@ -37,11 +37,32 @@ namespace ExtendedMongoMembership
             }
         }
 
-        // represents the User table for the app
-        public string UserTableName { get; set; }
-
-        // represents the User created UserName column, i.e. Email
-        public string UserNameColumn { get; set; }
+        // Inherited from RoleProvider ==> Forwarded to previous provider if this provider hasn't been initialized
+        public override string ApplicationName
+        {
+            get
+            {
+                if (InitializeCalled)
+                {
+                    throw new NotSupportedException();
+                }
+                else
+                {
+                    return PreviousProvider.ApplicationName;
+                }
+            }
+            set
+            {
+                if (InitializeCalled)
+                {
+                    throw new NotSupportedException();
+                }
+                else
+                {
+                    PreviousProvider.ApplicationName = value;
+                }
+            }
+        }
 
         internal bool InitializeCalled { get; set; }
 
@@ -49,7 +70,7 @@ namespace ExtendedMongoMembership
 
         internal virtual ISession ConnectToDatabase(string connectionString)
         {
-            return ConnectToDatabase(connectionString);
+            return new MongoSession(connectionString);
         }
 
         private void VerifyInitialized()
@@ -58,6 +79,22 @@ namespace ExtendedMongoMembership
             {
                 throw new InvalidOperationException(WebDataResources.Security_InitializeMustBeCalledFirst);
             }
+        }
+        public override void Initialize(string name, System.Collections.Specialized.NameValueCollection config)
+        {
+            string temp = config["connectionStringName"];
+
+            if (string.IsNullOrEmpty(temp))
+                throw new ProviderException(StringResources.GetString(StringResources.Connection_name_not_specified));
+
+            _connectionString = SecUtility.GetConnectionString(temp, true, true);
+
+            if (string.IsNullOrEmpty(_connectionString))
+            {
+                throw new ProviderException(StringResources.GetString(StringResources.Connection_string_not_found, temp));
+            }
+
+            base.Initialize(name, config);
         }
 
         private List<MembershipAccount> GetUsersFromNames(ISession session, string[] usernames)
@@ -178,7 +215,7 @@ namespace ExtendedMongoMembership
 
                 if (throwOnPopulatedRole)
                 {
-                    int usersInRole = session.Roles.Count(x => x.Id == role.Id);
+                    int usersInRole = session.Users.Where(x => x.Roles.Any(y => y.Id == role.Id)).Count();
 
                     if (usersInRole > 0)
                     {
