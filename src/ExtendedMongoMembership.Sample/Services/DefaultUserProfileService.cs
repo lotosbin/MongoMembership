@@ -3,17 +3,12 @@ using ExtendedMongoMembership.Services;
 
 namespace ExtendedMongoMembership.Sample.Services
 {
-    public class DefaultUserProfileService : UserProfileService<SampleUserProfile>
+    public class DefaultUserProfileService : UserProfileServiceBase<SampleUserProfile>
     {
         public DefaultUserProfileService(string connectionString)
             : base(connectionString)
         {
 
-        }
-
-        protected override string GetCollectionName()
-        {
-            return "Users";
         }
     }
 }
