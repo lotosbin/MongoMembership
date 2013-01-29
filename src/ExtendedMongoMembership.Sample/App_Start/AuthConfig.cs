@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Microsoft.Web.WebPages.OAuth;
-using ExtendedMongoMembership.Sample.Models;
+﻿using Microsoft.Web.WebPages.OAuth;
 
 namespace ExtendedMongoMembership.Sample
 {
@@ -22,9 +17,9 @@ namespace ExtendedMongoMembership.Sample
             //    consumerKey: "",
             //    consumerSecret: "");
 
-            //OAuthWebSecurity.RegisterFacebookClient(
-            //    appId: "",
-            //    appSecret: "");
+            OAuthWebSecurity.RegisterFacebookClient(
+                appId: "122703441237134",
+                appSecret: "b92363d66dcda8db558828d3e7874189");
 
             //OAuthWebSecurity.RegisterGoogleClient();
         }

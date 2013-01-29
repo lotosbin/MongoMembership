@@ -19,8 +19,6 @@ namespace ExtendedMongoMembership.Sample
             RouteConfig.RegisterRoutes(RouteTable.Routes);
             BundleConfig.RegisterBundles(BundleTable.Bundles);
             AuthConfig.RegisterAuth();
-
-            MongoWebSecurity.Init("UserProfiles", "UserName");
         }
     }
 }

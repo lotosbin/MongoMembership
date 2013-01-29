@@ -12,7 +12,7 @@ namespace ExtendedMongoMembership
 {
 
     /*internal*/
-    public class MongoSession : ISession
+    public class MongoSession : IDisposable
     {
         private MongoClient _client;
         private MongoServer _server;
@@ -34,7 +34,7 @@ namespace ExtendedMongoMembership
             _provider = _server.GetDatabase(_connectionString.Substring(last > -1 ? last + 1 : 0), WriteConcern.Acknowledged);
         }
 
-        private MongoDatabase MongoDatabase { get { return this._provider; } }
+        public MongoDatabase MongoDatabase { get { return this._provider; } }
 
 
         public IQueryable<MembershipAccount> Users
@@ -61,13 +61,32 @@ namespace ExtendedMongoMembership
 
         #endregion
 
+        //public T MapReduce<T>(string map, string reduce)
+        //{
+        //    T result = default(T);
+        //    MapReduce mr = _provider.Database.CreateMapReduce();
+
+        //    MapReduceResponse response =
+        //        mr.Execute(new MapReduceOptions(typeof(T).Name)
+        //        {
+        //            Map = map,
+        //            Reduce = reduce
+        //        });
+
+        //    IMongoCollection<MapReduceResult<T>> coll = response.GetCollection<MapReduceResult<T>>();
+        //    MapReduceResult<T> r = coll.Find().FirstOrDefault();
+        //    result = r.Value;
+
+        //    return result;
+        //}
+
         public void Add<T>(T item) where T : class
         {
             Type t = typeof(T);
             if (t == typeof(MembershipAccount))
             {
                 var acc = item as MembershipAccount;
-                acc.UserId = GetNextSequence("users");
+                acc.UserId = GetNextSequence("user_id");
                 _provider.GetCollection<MembershipAccount>(GetCollectionName<MembershipAccount>()).Insert(acc);
             }
             else
@@ -96,45 +115,15 @@ namespace ExtendedMongoMembership
             _provider.GetCollection<T>(GetCollectionName<T>()).Remove(query);
         }
 
-        public void DeleteById<T>(int id) where T : class
+        public void DeleteById<T>(object id) where T : class
         {
-            IMongoQuery query = Query.EQ("_id", id);
-            _provider.GetCollection<T>(GetCollectionName<T>()).Remove(query);
-        }
-
-        public void DeleteById<T>(Guid id) where T : class
-        {
-            IMongoQuery query = Query.EQ("_id", id);
-            _provider.GetCollection<T>(GetCollectionName<T>()).Remove(query);
-        }
-
-        public void DeleteById<T>(string id) where T : class
-        {
-            IMongoQuery query = Query.EQ("_id", id);
+            IMongoQuery query = Query.EQ("_id", id.ToString());
             _provider.GetCollection<T>(GetCollectionName<T>()).Remove(query);
         }
 
         public void DeleteById(object id, string collectionName)
         {
             IMongoQuery query = Query.EQ("_id", id.ToString());
-            _provider.GetCollection(collectionName).Remove(query);
-        }
-
-        public void DeleteById(int id, string collectionName)
-        {
-            IMongoQuery query = Query.EQ("_id", id);
-            _provider.GetCollection(collectionName).Remove(query);
-        }
-
-        public void DeleteById(Guid id, string collectionName)
-        {
-            IMongoQuery query = Query.EQ("_id", id);
-            _provider.GetCollection(collectionName).Remove(query);
-        }
-
-        public void DeleteById(string id, string collectionName)
-        {
-            IMongoQuery query = Query.EQ("_id", id);
             _provider.GetCollection(collectionName).Remove(query);
         }
 
@@ -172,7 +161,7 @@ namespace ExtendedMongoMembership
             return result;
         }
 
-        private int GetNextSequence(string name)
+        public int GetNextSequence(string name)
         {
             var collection = _provider.GetCollection("Counters");
             IMongoQuery query = Query.EQ("_id", name);
@@ -194,11 +183,12 @@ namespace ExtendedMongoMembership
             return result["_id"].AsInt32;
         }
 
-        public bool CreateUserRow(string userName, string UserNameColumn, string userTableName, IDictionary<string, object> values)
+        public bool CreateUserRow(string userName, IDictionary<string, object> values)
         {
+            string userTableName = "Users";
             List<BsonElement> elements = new List<BsonElement>();
-            elements.Add(new BsonElement(UserNameColumn, userName));
-            elements.Add(new BsonElement("_id", GetNextSequence(userTableName + "_id")));
+            elements.Add(new BsonElement("UserName", userName));
+            elements.Add(new BsonElement("_id", GetNextSequence("user_id")));
             if (values != null)
             {
                 foreach (var item in values)

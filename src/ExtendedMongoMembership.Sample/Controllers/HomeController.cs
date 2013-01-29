@@ -6,12 +6,6 @@ namespace ExtendedMongoMembership.Sample.Controllers
     {
         public ActionResult Index()
         {
-            //MongoWebSecurity.Init("UserProfiles", "UserName");
-            //Roles.CreateRole("Administrator");
-            //Roles.CreateRole("User");
-            //Roles.DeleteRole("User", false);
-            //Roles.AddUserToRole("admin", "Administrator");
-            //Roles.AddUserToRole("admin", "User");
 
 
             ViewBag.Message = "Modify this template to jump-start your ASP.NET MVC application.";
