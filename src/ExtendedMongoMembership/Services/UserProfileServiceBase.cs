@@ -3,10 +3,12 @@ using MongoDB.Driver;
 using MongoDB.Driver.Builders;
 using MongoDB.Driver.Linq;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ExtendedMongoMembership.Services
 {
-    public abstract class UserProfileServiceBase<TEntity> where TEntity : MembershipAccountBase
+    public abstract class UserProfileServiceBase<TEntity> : IUserProfileService<TEntity>
+        where TEntity : MembershipAccountBase
     {
         protected string GetCollectionName()
         {
@@ -46,7 +48,22 @@ namespace ExtendedMongoMembership.Services
             return item;
         }
 
+        public virtual TEntity GetProfileByUserName(string userName)
+        {
+            var collection = GetDefaultCollection();
+            var item = collection.AsQueryable().FirstOrDefault(x => x.UserName == userName);
+
+            return item;
+        }
+
         public virtual IEnumerable<TEntity> GetProfiles()
+        {
+            var collection = GetDefaultCollection();
+
+            return collection.AsQueryable().ToArray();
+        }
+
+        protected virtual IQueryable<TEntity> GetQueryableProfiles()
         {
             var collection = GetDefaultCollection();
 
