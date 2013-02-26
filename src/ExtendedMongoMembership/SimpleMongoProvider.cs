@@ -472,7 +472,7 @@ namespace ExtendedMongoMembership
             throw new NotSupportedException();
         }
 
-        private static bool SetPassword(MongoSession session, int userId, string newPassword)
+        private static bool SetPassword(MongoSession session, MembershipAccount user, string newPassword)
         {
             string hashedPassword = Crypto.HashPassword(newPassword);
             if (hashedPassword.Length > 128)
@@ -482,7 +482,6 @@ namespace ExtendedMongoMembership
 
             try
             {
-                var user = session.Users.FirstOrDefault(x => x.UserId == userId);
                 user.Password = hashedPassword;
                 user.PasswordSalt = string.Empty;
                 user.PasswordChangedDate = DateTime.UtcNow;
@@ -516,22 +515,24 @@ namespace ExtendedMongoMembership
             {
                 throw new ArgumentException("Argument_Cannot_Be_Null_Or_Empty", "newPassword");
             }
-
+            MembershipAccount user;
+            try
+            {
+                user = GetUser(username);
+            }
+            catch
+            {
+                return false;
+            }
             using (var session = new MongoSession(_connectionString))
             {
-                int userId = GetUserId(session, username);
-                if (userId == -1)
-                {
-                    return false; // User not found
-                }
-
                 // First check that the old credentials match
-                if (!CheckPassword(session, userId, oldPassword))
+                if (!CheckPassword(session, user.UserId, oldPassword))
                 {
                     return false;
                 }
 
-                return SetPassword(session, userId, newPassword);
+                return SetPassword(session, user, newPassword);
             }
         }
 
@@ -925,7 +926,7 @@ namespace ExtendedMongoMembership
                 var user = session.Users.FirstOrDefault(x => x.PasswordVerificationToken == token && x.PasswordVerificationTokenExpirationDate > DateTime.UtcNow);
                 if (user != null)
                 {
-                    bool success = SetPassword(session, user.UserId, newPassword);
+                    bool success = SetPassword(session, user, newPassword);
                     if (success)
                     {
                         // Clear the Token on success
@@ -933,7 +934,7 @@ namespace ExtendedMongoMembership
                         user.PasswordVerificationTokenExpirationDate = null;
                         try
                         {
-                            session.Save(user);
+                            session.Update(user);
                         }
                         catch (Exception)
                         {
