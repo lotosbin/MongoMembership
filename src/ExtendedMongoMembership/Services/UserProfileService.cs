@@ -3,12 +3,17 @@ using MongoDB.Driver;
 using MongoDB.Driver.Builders;
 using MongoDB.Driver.Linq;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ExtendedMongoMembership.Services
 {
-    public abstract class UserProfileService<TEntity> where TEntity : MembershipAccountBase
+    public abstract class UserProfileServiceBase<TEntity> : IUserProfileServiceBase<TEntity>
+        where TEntity : MembershipAccountBase
     {
-        protected abstract string GetCollectionName();
+        protected virtual string GetCollectionName()
+        {
+            return "Users";
+        }
 
         #region Member Vars
 
@@ -22,7 +27,7 @@ namespace ExtendedMongoMembership.Services
 
         #region Constructors
 
-        public UserProfileService(string connectionString)
+        public UserProfileServiceBase(string connectionString)
         {
             _connectionString = connectionString;
             _databaseName = connectionString.Substring(connectionString.LastIndexOf('/') + 1);
@@ -109,5 +114,11 @@ namespace ExtendedMongoMembership.Services
         }
 
         #endregion
+
+
+        public TEntity GetProfileByUserName(string userName)
+        {
+            return GetDefaultCollection().AsQueryable().FirstOrDefault(x => x.UserName == userName);
+        }
     }
 }

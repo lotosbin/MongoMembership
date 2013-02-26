@@ -60,7 +60,8 @@
     <Compile Include="Entities\MembershipRole.cs" />
     <Compile Include="RoleProvider.cs" />
     <Compile Include="SecUtil.cs" />
-    <Compile Include="Services\UserProfileServiceBase.cs" />
+    <Compile Include="Services\IUserProfileService.cs" />
+    <Compile Include="Services\UserProfileService.cs" />
     <Compile Include="ShortGuid.cs" />
     <Compile Include="ShortGuidGenerator.cs" />
     <Compile Include="SimpleMongoProvider.cs" />

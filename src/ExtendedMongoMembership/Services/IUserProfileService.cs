@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ExtendedMongoMembership.Services
 {
-    public interface IUserProfileService<TEntity>
+    public interface IUserProfileServiceBase<TEntity>
     {
         TEntity GetProfile(string id);
         TEntity GetProfileByUserName(string userName);
