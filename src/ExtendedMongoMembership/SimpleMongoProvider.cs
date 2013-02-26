@@ -46,7 +46,7 @@ namespace ExtendedMongoMembership
             {
                 if (_previousProvider == null)
                 {
-                    throw new InvalidOperationException(WebDataResources.Security_InitializeMustBeCalledFirst);
+                    throw new InvalidOperationException("You must call the \"WebSecurity.InitializeDatabaseConnection\" method before you call any other method of the \"WebSecurity\" class. This call should be placed in an _AppStart.cshtml file in the root of your site.");
                 }
                 else
                 {
@@ -152,7 +152,7 @@ namespace ExtendedMongoMembership
         {
             if (!InitializeCalled)
             {
-                throw new InvalidOperationException(WebDataResources.Security_InitializeMustBeCalledFirst);
+                throw new InvalidOperationException("You must call the \"WebSecurity.InitializeDatabaseConnection\" method before you call any other method of the \"WebSecurity\" class. This call should be placed in an _AppStart.cshtml file in the root of your site.");
             }
         }
 
@@ -209,7 +209,7 @@ namespace ExtendedMongoMembership
                 string attribUnrecognized = config.GetKey(0);
                 if (!String.IsNullOrEmpty(attribUnrecognized))
                 {
-                    throw new ProviderException(String.Format(CultureInfo.CurrentCulture, WebDataResources.SimpleMembership_ProviderUnrecognizedAttribute, attribUnrecognized));
+                    throw new ProviderException(String.Format("Provider unrecognized attribute: \"{0}\".", attribUnrecognized));
                 }
             }
         }
@@ -477,7 +477,7 @@ namespace ExtendedMongoMembership
             string hashedPassword = Crypto.HashPassword(newPassword);
             if (hashedPassword.Length > 128)
             {
-                throw new ArgumentException(WebDataResources.SimpleMembership_PasswordTooLong);
+                throw new ArgumentException("The membership password is too long. (Maximum length is 128 characters).");
             }
 
             try
@@ -506,15 +506,15 @@ namespace ExtendedMongoMembership
             // REVIEW: are commas special in the password?
             if (string.IsNullOrEmpty(username))
             {
-                throw new ArgumentException("CommonResources.Argument_Cannot_Be_Null_Or_Empty", "username");
+                throw new ArgumentException("Argument_Cannot_Be_Null_Or_Empty", "username");
             }
             if (string.IsNullOrEmpty(oldPassword))
             {
-                throw new ArgumentException("CommonResources.Argument_Cannot_Be_Null_Or_Empty", "oldPassword");
+                throw new ArgumentException("Argument_Cannot_Be_Null_Or_Empty", "oldPassword");
             }
             if (string.IsNullOrEmpty(newPassword))
             {
-                throw new ArgumentException("CommonResources.Argument_Cannot_Be_Null_Or_Empty", "newPassword");
+                throw new ArgumentException("Argument_Cannot_Be_Null_Or_Empty", "newPassword");
             }
 
             using (var session = new MongoSession(_connectionString))
@@ -712,7 +712,7 @@ namespace ExtendedMongoMembership
                 int userId = GetUserId(session, userName);
                 if (userId == -1)
                 {
-                    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.Security_NoUserFound, userName));
+                    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, "No user found was found that has the name \"{0}\".", userName));
                 }
 
                 return GetPasswordFailuresSinceLastSuccess(session, userId);
@@ -727,7 +727,7 @@ namespace ExtendedMongoMembership
                 var user = session.Users.FirstOrDefault(x => x.UserName == userName);
                 if (user == null)
                 {
-                    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.Security_NoUserFound, userName));
+                    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, "No user found was found that has the name \"{0}\".", userName));
                 }
 
                 if (user.CreateDate.HasValue)
@@ -746,7 +746,7 @@ namespace ExtendedMongoMembership
                 var user = session.Users.FirstOrDefault(x => x.UserName == userName);
                 if (user == null)
                 {
-                    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.Security_NoUserFound, userName));
+                    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, "No user found was found that has the name \"{0}\".", userName));
                 }
 
                 if (user.PasswordChangedDate.HasValue)
@@ -765,7 +765,7 @@ namespace ExtendedMongoMembership
                 var user = session.Users.FirstOrDefault(x => x.UserName == userName);
                 if (user == null)
                 {
-                    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.Security_NoUserFound, userName));
+                    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, "No user found was found that has the name \"{0}\".", userName));
                 }
 
                 if (user.LastPasswordFailureDate.HasValue)
@@ -819,7 +819,7 @@ namespace ExtendedMongoMembership
             {
                 if (throwException)
                 {
-                    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.Security_NoUserFound, userName));
+                    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, "No user found was found that has the name \"{0}\".", userName));
                 }
                 else
                 {
@@ -831,7 +831,7 @@ namespace ExtendedMongoMembership
             {
                 if (throwException)
                 {
-                    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.Security_NoAccountFound, userName));
+                    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, "No account exists for \"{0}\".", userName));
                 }
                 else
                 {
@@ -862,37 +862,36 @@ namespace ExtendedMongoMembership
             VerifyInitialized();
             if (string.IsNullOrEmpty(userName))
             {
-                throw new ArgumentException("CommonResources.Argument_Cannot_Be_Null_Or_Empty", "userName");
+                throw new ArgumentException("Argument_Cannot_Be_Null_Or_Empty", "userName");
             }
             using (var session = new MongoSession(_connectionString))
             {
                 int userId = VerifyUserNameHasConfirmedAccount(session, userName, throwException: true);
 
-                var user = session.Users.FirstOrDefault(x => x.UserId == userId && x.PasswordVerificationTokenExpirationDate > DateTime.UtcNow);
+                var user = session.Users.FirstOrDefault(x => x.UserId == userId);
 
                 if (user == null)
                 {
-                    throw new InvalidOperationException(String.Format(CultureInfo.CurrentCulture, WebDataResources.Security_NoUserFound, userName));
+                    throw new InvalidOperationException(String.Format("No user found was found that has the name \"{0}\".", userName));
                 }
 
 
                 if (user.PasswordVerificationToken == null)
                 {
                     user.PasswordVerificationToken = GenerateToken();
-                    user.PasswordVerificationTokenExpirationDate = DateTime.UtcNow.AddMinutes(tokenExpirationInMinutesFromNow);
-                    try
-                    {
-                        session.Save(user);
-                    }
-                    catch (Exception)
-                    {
-                        throw new ProviderException(WebDataResources.Security_DbFailure);
-                    }
+
                 }
-                else
+
+                try
                 {
-                    // TODO: should we update expiry again?
+                    user.PasswordVerificationTokenExpirationDate = DateTime.UtcNow.AddMinutes(tokenExpirationInMinutesFromNow);
+                    session.Save(user);
                 }
+                catch (Exception)
+                {
+                    throw new ProviderException("Database operation failed.");
+                }
+
                 return user.PasswordVerificationToken;
             }
         }
@@ -903,7 +902,7 @@ namespace ExtendedMongoMembership
             VerifyInitialized();
             if (string.IsNullOrEmpty(userName))
             {
-                throw new ArgumentException("CommonResources.Argument_Cannot_Be_Null_Or_Empty", "userName");
+                throw new ArgumentException("Argument_Cannot_Be_Null_Or_Empty", "userName");
             }
 
             using (var session = new MongoSession(_connectionString))
@@ -919,7 +918,7 @@ namespace ExtendedMongoMembership
             VerifyInitialized();
             if (string.IsNullOrEmpty(newPassword))
             {
-                throw new ArgumentException("CommonResources.Argument_Cannot_Be_Null_Or_Empty", "newPassword");
+                throw new ArgumentException("Argument_Cannot_Be_Null_Or_Empty", "newPassword");
             }
             using (var session = new MongoSession(_connectionString))
             {
@@ -938,7 +937,7 @@ namespace ExtendedMongoMembership
                         }
                         catch (Exception)
                         {
-                            throw new ProviderException(WebDataResources.Security_DbFailure);
+                            throw new ProviderException("Database operation failed.");
                         }
                     }
                     return success;
@@ -998,11 +997,11 @@ namespace ExtendedMongoMembership
             }
             if (string.IsNullOrEmpty(username))
             {
-                throw new ArgumentException("CommonResources.Argument_Cannot_Be_Null_Or_Empty", "username");
+                throw new ArgumentException("Argument_Cannot_Be_Null_Or_Empty", "username");
             }
             if (string.IsNullOrEmpty(password))
             {
-                throw new ArgumentException("CommonResources.Argument_Cannot_Be_Null_Or_Empty", "password");
+                throw new ArgumentException("Argument_Cannot_Be_Null_Or_Empty", "password");
             }
 
             using (var session = new MongoSession(_connectionString))
@@ -1167,7 +1166,7 @@ namespace ExtendedMongoMembership
                     }
                     catch (Exception)
                     {
-                        throw new ProviderException(WebDataResources.SimpleMembership_FailToStoreOAuthToken);
+                        throw new ProviderException("Failed to store OAuth token to database.");
                     }
                 }
             }
