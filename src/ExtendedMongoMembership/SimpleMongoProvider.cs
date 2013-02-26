@@ -876,7 +876,7 @@ namespace ExtendedMongoMembership
                 }
 
 
-                if (user.PasswordVerificationToken == null)
+                if (user.PasswordVerificationToken == null || (user.PasswordVerificationToken != null && user.PasswordVerificationTokenExpirationDate > DateTime.UtcNow))
                 {
                     user.PasswordVerificationToken = GenerateToken();
 
