@@ -22,6 +22,7 @@ namespace ExtendedMongoMembership
         public string PasswordSalt { get; set; }
         public string PasswordVerificationToken { get; set; }
         public DateTime? PasswordVerificationTokenExpirationDate { get; set; }
+        public DateTime? LastLoginDate { get; set; }
 
         public List<MembershipRole> Roles { get; set; }
 

@@ -564,17 +564,17 @@ namespace ExtendedMongoMembership
                 return PreviousProvider.GetUser(username, userIsOnline);
             }
 
-            // Due to a bug in v1, GetUser allows passing null / empty values.
-            using (var session = new MongoSession(_connectionString))
+            MembershipAccount user;
+            try
             {
-                int userId = GetUserId(session, username);
-                if (userId == -1)
-                {
-                    return null; // User not found
-                }
-
-                return new MembershipUser(Membership.Provider.Name, username, userId, null, null, null, true, false, DateTime.MinValue, DateTime.MinValue, DateTime.MinValue, DateTime.MinValue, DateTime.MinValue);
+                user = GetUser(username);
             }
+            catch (Exception ex)
+            {
+                return null;
+            }
+
+            return new MembershipUser(Membership.Provider.Name, username, user.UserId, null, null, null, true, false, DateTime.MinValue, user.LastLoginDate ?? DateTime.MinValue, DateTime.MinValue, DateTime.MinValue, DateTime.MinValue);
         }
 
         // Inherited from MembershipProvider ==> Forwarded to previous provider if this provider hasn't been initialized
@@ -813,7 +813,7 @@ namespace ExtendedMongoMembership
         }
 
         // Ensures the user exists in the accounts table
-        private int VerifyUserNameHasConfirmedAccount(MongoSession session, string userName, bool throwException)
+        private MembershipAccount VerifyUserNameHasConfirmedAccount(MongoSession session, string userName, bool throwException)
         {
             var user = session.Users.FirstOrDefault(x => x.UserName == userName);
             if (user == null)
@@ -824,7 +824,7 @@ namespace ExtendedMongoMembership
                 }
                 else
                 {
-                    return -1;
+                    return null;
                 }
             }
 
@@ -836,10 +836,10 @@ namespace ExtendedMongoMembership
                 }
                 else
                 {
-                    return -1;
+                    return null;
                 }
             }
-            return user.UserId;
+            return user;
         }
 
         private static string GenerateToken()
@@ -867,9 +867,7 @@ namespace ExtendedMongoMembership
             }
             using (var session = new MongoSession(_connectionString))
             {
-                int userId = VerifyUserNameHasConfirmedAccount(session, userName, throwException: true);
-
-                var user = session.Users.FirstOrDefault(x => x.UserId == userId);
+                var user = VerifyUserNameHasConfirmedAccount(session, userName, throwException: true);
 
                 if (user == null)
                 {
@@ -908,8 +906,8 @@ namespace ExtendedMongoMembership
 
             using (var session = new MongoSession(_connectionString))
             {
-                int userId = VerifyUserNameHasConfirmedAccount(session, userName, throwException: false);
-                return (userId != -1);
+                var user = VerifyUserNameHasConfirmedAccount(session, userName, throwException: false);
+                return (user != null);
             }
         }
 
@@ -1004,17 +1002,23 @@ namespace ExtendedMongoMembership
             {
                 throw new ArgumentException("Argument_Cannot_Be_Null_Or_Empty", "password");
             }
-
             using (var session = new MongoSession(_connectionString))
             {
-                int userId = VerifyUserNameHasConfirmedAccount(session, username, throwException: false);
-                if (userId == -1)
+                var user = VerifyUserNameHasConfirmedAccount(session, username, throwException: false);
+                if (user == null)
                 {
                     return false;
                 }
                 else
                 {
-                    return CheckPassword(session, userId, password);
+                    var result = CheckPassword(session, user.UserId, password);
+                    try
+                    {
+                        user.LastLoginDate = DateTime.Now;
+                        session.Update(user);
+                    }
+                    catch (Exception ex) { }
+                    return result;
                 }
             }
         }
