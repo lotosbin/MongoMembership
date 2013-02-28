@@ -8,4 +8,3 @@ E:\use\In House\Open Source\extendedmongomembership\extmongomembership\src\Exten
 E:\use\In House\Open Source\extendedmongomembership\extmongomembership\src\ExtendedMongoMembership\bin\Release\MongoDB.Driver.xml
 E:\use\In House\Open Source\extendedmongomembership\extmongomembership\src\ExtendedMongoMembership\obj\Release\ExtendedMongoMembership.dll
 E:\use\In House\Open Source\extendedmongomembership\extmongomembership\src\ExtendedMongoMembership\obj\Release\ExtendedMongoMembership.pdb
-E:\use\In House\Open Source\extendedmongomembership\extmongomembership\src\ExtendedMongoMembership\obj\Release\ExtendedMongoMembership.csprojResolveAssemblyReference.cache

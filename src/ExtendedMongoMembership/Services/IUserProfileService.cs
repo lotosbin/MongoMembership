@@ -9,9 +9,9 @@ namespace ExtendedMongoMembership.Services
 {
     public interface IUserProfileServiceBase<TEntity>
     {
-        TEntity GetProfile(string id);
+        TEntity GetProfileById(int id);
         TEntity GetProfileByUserName(string userName);
-        IEnumerable<TEntity> GetProfiles();
+        IEnumerable<TEntity> GetAllProfiles();
         void CreateProfile(TEntity entity);
         void UpdateProfile(TEntity entity);
         void Delete(IEnumerable<TEntity> entities);

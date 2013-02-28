@@ -40,7 +40,7 @@ namespace ExtendedMongoMembership.Services
 
         #region Public Methods
 
-        public virtual TEntity GetProfile(string id)
+        public virtual TEntity GetProfileById(int id)
         {
             var collection = GetDefaultCollection();
             var item = collection.FindOneById(id);
@@ -48,7 +48,7 @@ namespace ExtendedMongoMembership.Services
             return item;
         }
 
-        public virtual IEnumerable<TEntity> GetProfiles()
+        public virtual IEnumerable<TEntity> GetAllProfiles()
         {
             var collection = GetDefaultCollection();
 
