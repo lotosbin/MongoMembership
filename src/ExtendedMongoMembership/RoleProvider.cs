@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ExtendedMongoMembership.Helpers;
+using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration.Provider;
@@ -11,8 +12,6 @@ namespace ExtendedMongoMembership
     {
         private string _AppName;
         private string _mongoConnectionString;
-
-
 
         public override void Initialize(string name, NameValueCollection config)
         {
@@ -73,17 +72,8 @@ namespace ExtendedMongoMembership
 
             try
             {
-
                 using (var session = new MongoSession(_mongoConnectionString))
                 {
-
-                    //var check = (from r in session.Roles
-                    //             where
-                    //                 r.Users.Any(u => u.UserName == username)
-                    //                 && r.RoleName == roleName
-                    //                 && r.ApplicationId==_AppId select r).Any();
-
-
 
                     var user = (from u in session.Users
                                 where u.UserName == username
@@ -99,16 +89,12 @@ namespace ExtendedMongoMembership
                         return true;
 
                     return false;
-
                 }
-
-
             }
             catch
             {
                 throw;
             }
-
         }
 
 
@@ -135,11 +121,7 @@ namespace ExtendedMongoMembership
                         return new string[0];
 
                     return user.Roles.Select(r => r.RoleName).ToArray();
-
-
                 }
-
-
             }
             catch
             {
@@ -175,7 +157,6 @@ namespace ExtendedMongoMembership
 
                     session.Add(role);
                 }
-
             }
             catch
             {
@@ -211,10 +192,7 @@ namespace ExtendedMongoMembership
                     session.DeleteById<MembershipRole>(role.RoleId);
 
                     return true;
-
                 }
-
-
             }
             catch
             {
@@ -236,9 +214,7 @@ namespace ExtendedMongoMembership
                                 where r.RoleName == roleName
                                 select r).SingleOrDefault();
 
-
                     return (role != null);
-
                 }
             }
             catch
@@ -277,7 +253,6 @@ namespace ExtendedMongoMembership
                         {
                             var newRoles = roles.Except(userEntity.Roles);
                             userEntity.Roles.AddRange(newRoles);
-
                         }
                         else
                         {
@@ -286,12 +261,8 @@ namespace ExtendedMongoMembership
                         }
 
                         session.Save(userEntity);
-
                     }
-
-
                 }
-
             }
             catch
             {
@@ -325,23 +296,17 @@ namespace ExtendedMongoMembership
                     {
                         if (userEntity.Roles != null && userEntity.Roles.Any())
                         {
-                            var matchedRoles = roles.Intersect(userEntity.Roles);
+                            int oldCount = userEntity.Roles.Count;
+                            var matchedRoles = roles.Intersect(userEntity.Roles, new RoleComparer());
 
                             foreach (var matchedRole in matchedRoles)
                                 userEntity.Roles.Remove(matchedRole);
 
-                            if (matchedRoles.Any())
+                            if (oldCount != userEntity.Roles.Count)
                                 session.Save(userEntity);
-
                         }
-
-
-
                     }
-
-
                 }
-
             }
             catch
             {
@@ -378,9 +343,7 @@ namespace ExtendedMongoMembership
                         return new string[0];
 
                     return users.Select(u => u.UserName).ToArray();
-
                 }
-
             }
             catch
             {
@@ -404,7 +367,6 @@ namespace ExtendedMongoMembership
                         return new string[0];
 
                     return roles.Select(u => u.RoleName).ToArray();
-
                 }
             }
             catch
@@ -443,17 +405,13 @@ namespace ExtendedMongoMembership
                         return new string[0];
 
                     return users.Select(u => u.UserName).ToArray();
-
                 }
-
             }
             catch
             {
                 throw;
             }
         }
-
-
 
         public override string ApplicationName
         {
@@ -468,8 +426,6 @@ namespace ExtendedMongoMembership
                 }
             }
         }
-
-
     }
 
 }

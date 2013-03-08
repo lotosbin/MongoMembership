@@ -1,6 +1,6 @@
 ﻿
 using MongoDB.Bson.Serialization;
-namespace ExtendedMongoMembership
+namespace ExtendedMongoMembership.Helpers
 {
     public class ShortGuidGenerator : IIdGenerator
     {

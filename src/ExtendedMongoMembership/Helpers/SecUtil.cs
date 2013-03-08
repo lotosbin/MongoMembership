@@ -1,5 +1,5 @@
 
-namespace ExtendedMongoMembership
+namespace ExtendedMongoMembership.Helpers
 {
     using System;
     using System.Collections;

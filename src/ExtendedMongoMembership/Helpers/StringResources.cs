@@ -1,5 +1,5 @@
 
-namespace ExtendedMongoMembership
+namespace ExtendedMongoMembership.Helpers
 {
 
     internal static class StringResources
