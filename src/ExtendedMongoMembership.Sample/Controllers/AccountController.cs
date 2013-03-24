@@ -1,5 +1,4 @@
 ﻿using DotNetOpenAuth.AspNet;
-using ExtendedMongoMembership.Sample.Filters;
 using ExtendedMongoMembership.Sample.Models;
 using ExtendedMongoMembership.Sample.Services;
 using Microsoft.Web.WebPages.OAuth;
@@ -14,7 +13,6 @@ using WebMatrix.WebData;
 namespace ExtendedMongoMembership.Sample.Controllers
 {
     [Authorize]
-    [InitializeSimpleMembership]
     public class AccountController : Controller
     {
         //

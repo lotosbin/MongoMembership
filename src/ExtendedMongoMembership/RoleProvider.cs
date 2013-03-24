@@ -179,10 +179,10 @@ namespace ExtendedMongoMembership
                                 select r).SingleOrDefault();
 
 
-                    var users = (from u in session.Users
-                                 where u.Roles != null &&
-                                     u.Roles.Where(r => r.RoleName == roleName).Any()
-                                 select u);
+                    var users = session.Users
+                        .Where(u => u.Roles != null)
+                        .Where(u => u.Roles.Any(r => r.RoleName == roleName));
+
 
                     if (users.Any() && throwOnPopulatedRole)
                     {
