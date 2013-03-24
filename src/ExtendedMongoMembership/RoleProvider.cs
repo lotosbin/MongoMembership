@@ -19,7 +19,7 @@ namespace ExtendedMongoMembership
                 throw new ArgumentNullException("config");
 
             if (String.IsNullOrEmpty(name))
-                name = "EazyRoleProviderMongoDb";
+                name = "MongoDbRoleProvider";
             if (string.IsNullOrEmpty(config["description"]))
             {
                 config.Remove("description");
@@ -249,14 +249,13 @@ namespace ExtendedMongoMembership
 
                     foreach (var userEntity in users)
                     {
-                        if (userEntity.Roles != null && userEntity.Roles.Any())
+                        if (userEntity.Roles.Any())
                         {
                             var newRoles = roles.Except(userEntity.Roles);
                             userEntity.Roles.AddRange(newRoles);
                         }
                         else
                         {
-                            userEntity.Roles = new List<MembershipRole>();
                             userEntity.Roles.AddRange(roles);
                         }
 
@@ -269,7 +268,6 @@ namespace ExtendedMongoMembership
                 throw;
             }
         }
-
 
         public override void RemoveUsersFromRoles(string[] usernames, string[] roleNames)
         {
@@ -294,7 +292,7 @@ namespace ExtendedMongoMembership
 
                     foreach (var userEntity in users)
                     {
-                        if (userEntity.Roles != null && userEntity.Roles.Any())
+                        if (userEntity.Roles.Any())
                         {
                             int oldCount = userEntity.Roles.Count;
                             var matchedRoles = roles.Intersect(userEntity.Roles, new RoleComparer());

@@ -61,25 +61,6 @@ namespace ExtendedMongoMembership
 
         #endregion
 
-        //public T MapReduce<T>(string map, string reduce)
-        //{
-        //    T result = default(T);
-        //    MapReduce mr = _provider.Database.CreateMapReduce();
-
-        //    MapReduceResponse response =
-        //        mr.Execute(new MapReduceOptions(typeof(T).Name)
-        //        {
-        //            Map = map,
-        //            Reduce = reduce
-        //        });
-
-        //    IMongoCollection<MapReduceResult<T>> coll = response.GetCollection<MapReduceResult<T>>();
-        //    MapReduceResult<T> r = coll.Find().FirstOrDefault();
-        //    result = r.Value;
-
-        //    return result;
-        //}
-
         public void Add<T>(T item) where T : class
         {
             Type t = typeof(T);
@@ -133,12 +114,6 @@ namespace ExtendedMongoMembership
             var col = _provider.GetCollection<T>(GetCollectionName<T>());
             _provider.DropCollection(typeof(T).Name);
         }
-
-        //public void CreateCappedCollection(string name)
-        //{
-
-        //    _provider.CreateCollection(name);
-        //}
 
         private string GetCollectionName<T>()
         {
