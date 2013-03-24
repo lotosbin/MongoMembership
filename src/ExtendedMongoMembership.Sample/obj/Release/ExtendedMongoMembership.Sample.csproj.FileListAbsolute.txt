@@ -108,9 +108,7 @@ E:\use\In House\Open Source\extendedmongomembership\extmongomembership\src\Exten
 E:\use\In House\Open Source\extendedmongomembership\extmongomembership\src\ExtendedMongoMembership.Sample\bin\DotNetOpenAuth.OAuth.xml
 E:\use\In House\Open Source\extendedmongomembership\extmongomembership\src\ExtendedMongoMembership.Sample\bin\DotNetOpenAuth.OpenId.xml
 E:\use\In House\Open Source\extendedmongomembership\extmongomembership\src\ExtendedMongoMembership.Sample\bin\DotNetOpenAuth.OpenId.RelyingParty.xml
-E:\use\In House\Open Source\extendedmongomembership\extmongomembership\src\ExtendedMongoMembership.Sample\bin\MongoDB.Bson.pdb
 E:\use\In House\Open Source\extendedmongomembership\extmongomembership\src\ExtendedMongoMembership.Sample\bin\MongoDB.Bson.xml
-E:\use\In House\Open Source\extendedmongomembership\extmongomembership\src\ExtendedMongoMembership.Sample\bin\MongoDB.Driver.pdb
 E:\use\In House\Open Source\extendedmongomembership\extmongomembership\src\ExtendedMongoMembership.Sample\bin\MongoDB.Driver.xml
 E:\work\membershipplus_codeplex\src\ExtendedMongoMembership.Sample\bin\ExtendedMongoMembership.Sample.dll
 E:\work\membershipplus_codeplex\src\ExtendedMongoMembership.Sample\bin\ExtendedMongoMembership.Sample.pdb
