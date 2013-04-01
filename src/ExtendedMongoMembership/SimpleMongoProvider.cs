@@ -699,7 +699,7 @@ namespace ExtendedMongoMembership
         private static int GetPasswordFailuresSinceLastSuccess(MongoSession session, int userId)
         {
             var failure = session.Users.FirstOrDefault(x => x.UserId == userId);
-            if (failure != null && failure.PasswordFailuresSinceLastSuccess != null)
+            if (failure != null)
             {
                 return failure.PasswordFailuresSinceLastSuccess;
             }
