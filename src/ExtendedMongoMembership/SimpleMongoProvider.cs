@@ -1015,7 +1015,15 @@ namespace ExtendedMongoMembership
                     var result = CheckPassword(session, user.UserId, password);
                     try
                     {
-                        user.LastLoginDate = DateTime.Now;
+                        if (result)
+                        {
+                            user.LastLoginDate = DateTime.Now;
+                        }
+                        else
+                        {
+                            user.LastPasswordFailureDate = DateTime.Now;
+                        }
+
                         session.Update(user);
                     }
                     catch (Exception ex) { }
