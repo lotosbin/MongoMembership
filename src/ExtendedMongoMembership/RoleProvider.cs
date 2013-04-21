@@ -61,6 +61,7 @@ namespace ExtendedMongoMembership
                 throw new ProviderException(StringResources.GetString(StringResources.Provider_application_name_too_long));
             }
 
+            config.Remove("useAppHarbor");
             config.Remove("connectionStringName");
             config.Remove("applicationName");
             config.Remove("commandTimeout");
