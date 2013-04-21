@@ -18,20 +18,20 @@ namespace ExtendedMongoMembership
         private MongoServer _server;
         private MongoDatabase _provider;
 
-        private string _connectionString = string.Empty;
+        private MongoUrl _mongoUrl;
 
         public MongoSession()
         {
-            _connectionString = ConfigurationManager.ConnectionStrings["ConnectionString"].ConnectionString;
+            var connectionString = ConfigurationManager.ConnectionStrings["ConnectionString"].ConnectionString;
+            _mongoUrl = new MongoUrl(connectionString);
         }
 
         public MongoSession(string connectionString)
         {
-            _connectionString = connectionString;
-            _client = new MongoClient(_connectionString);
+            _mongoUrl = new MongoUrl(connectionString);
+            _client = new MongoClient(_mongoUrl);
             _server = _client.GetServer();
-            int last = _connectionString.LastIndexOf("/");
-            _provider = _server.GetDatabase(_connectionString.Substring(last > -1 ? last + 1 : 0), WriteConcern.Acknowledged);
+            _provider = _server.GetDatabase(_mongoUrl.DatabaseName, WriteConcern.Acknowledged);
         }
 
         public MongoDatabase MongoDatabase { get { return this._provider; } }
