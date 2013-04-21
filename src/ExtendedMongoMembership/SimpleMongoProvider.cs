@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Configuration;
 using System.Configuration.Provider;
 using System.Diagnostics;
 using System.Globalization;
@@ -145,6 +146,7 @@ namespace ExtendedMongoMembership
         }
 
         private string _connectionString;
+        private bool _useAppHarbor;
 
         internal bool InitializeCalled { get; set; }
 
@@ -177,18 +179,30 @@ namespace ExtendedMongoMembership
             }
             base.Initialize(name, config);
 
-            string temp = config["connectionStringName"];
 
-            if (string.IsNullOrEmpty(temp))
-                throw new ProviderException(StringResources.GetString(StringResources.Connection_name_not_specified));
-
-            _connectionString = SecUtility.GetConnectionString(temp, true, true);
+            bool.TryParse(config["useAppHarbor"], out _useAppHarbor);
+            if (_useAppHarbor)
+            {
+                _connectionString =
+                    ConfigurationManager.AppSettings.Get("MONGOHQ_URL") ??
+                    ConfigurationManager.AppSettings.Get("MONGOLAB_URI");
+            }
 
             if (string.IsNullOrEmpty(_connectionString))
             {
-                throw new ProviderException(StringResources.GetString(StringResources.Connection_string_not_found, temp));
+                string temp = config["connectionStringName"];
+                if (string.IsNullOrEmpty(temp))
+                    throw new ProviderException(StringResources.GetString(StringResources.Connection_name_not_specified));
+                _connectionString = SecUtility.GetConnectionString(temp, true, true);
+
+                if (string.IsNullOrEmpty(_connectionString))
+                {
+                    throw new ProviderException(StringResources.GetString(StringResources.Connection_string_not_found, temp));
+                }
             }
 
+
+            config.Remove("useAppHarbor");
             config.Remove("connectionStringName");
             config.Remove("enablePasswordRetrieval");
             config.Remove("enablePasswordReset");

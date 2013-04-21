@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Configuration;
 using System.Configuration.Provider;
 using System.Linq;
 using System.Web.Security;
@@ -11,7 +12,8 @@ namespace ExtendedMongoMembership
     public class MongoRoleProvider : RoleProvider
     {
         private string _AppName;
-        private string _mongoConnectionString;
+        private string _connectionString;
+        private bool _useAppHarbor;
 
         public override void Initialize(string name, NameValueCollection config)
         {
@@ -28,16 +30,25 @@ namespace ExtendedMongoMembership
             base.Initialize(name, config);
 
 
-            string temp = config["connectionStringName"];
-
-            if (string.IsNullOrEmpty(temp))
-                throw new ProviderException(StringResources.GetString(StringResources.Connection_name_not_specified));
-
-            _mongoConnectionString = SecUtility.GetConnectionString(temp, true, true);
-
-            if (string.IsNullOrEmpty(_mongoConnectionString))
+            bool.TryParse(config["useAppHarbor"], out _useAppHarbor);
+            if (_useAppHarbor)
             {
-                throw new ProviderException(StringResources.GetString(StringResources.Connection_string_not_found, temp));
+                _connectionString =
+                    ConfigurationManager.AppSettings.Get("MONGOHQ_URL") ??
+                    ConfigurationManager.AppSettings.Get("MONGOLAB_URI");
+            }
+
+            if (string.IsNullOrEmpty(_connectionString))
+            {
+                string temp = config["connectionStringName"];
+                if (string.IsNullOrEmpty(temp))
+                    throw new ProviderException(StringResources.GetString(StringResources.Connection_name_not_specified));
+                _connectionString = SecUtility.GetConnectionString(temp, true, true);
+
+                if (string.IsNullOrEmpty(_connectionString))
+                {
+                    throw new ProviderException(StringResources.GetString(StringResources.Connection_string_not_found, temp));
+                }
             }
 
             _AppName = config["applicationName"];
@@ -72,7 +83,7 @@ namespace ExtendedMongoMembership
 
             try
             {
-                using (var session = new MongoSession(_mongoConnectionString))
+                using (var session = new MongoSession(_connectionString))
                 {
 
                     var user = (from u in session.Users
@@ -107,7 +118,7 @@ namespace ExtendedMongoMembership
             try
             {
 
-                using (var session = new MongoSession(_mongoConnectionString))
+                using (var session = new MongoSession(_connectionString))
                 {
 
                     var user = (from u in session.Users
@@ -136,7 +147,7 @@ namespace ExtendedMongoMembership
             try
             {
 
-                using (var session = new MongoSession(_mongoConnectionString))
+                using (var session = new MongoSession(_connectionString))
                 {
 
                     var roles = from r in session.Roles
@@ -171,7 +182,7 @@ namespace ExtendedMongoMembership
             try
             {
 
-                using (var session = new MongoSession(_mongoConnectionString))
+                using (var session = new MongoSession(_connectionString))
                 {
 
                     var role = (from r in session.Roles
@@ -207,7 +218,7 @@ namespace ExtendedMongoMembership
 
             try
             {
-                using (var session = new MongoSession(_mongoConnectionString))
+                using (var session = new MongoSession(_connectionString))
                 {
 
                     var role = (from r in session.Roles
@@ -236,7 +247,7 @@ namespace ExtendedMongoMembership
                 List<string> _usernames = usernames.ToList();
                 List<string> _roleNames = roleNames.ToList();
 
-                using (var session = new MongoSession(_mongoConnectionString))
+                using (var session = new MongoSession(_connectionString))
                 {
 
                     var users = (from u in session.Users
@@ -279,7 +290,7 @@ namespace ExtendedMongoMembership
                 List<string> _usernames = usernames.ToList();
                 List<string> _roleNames = roleNames.ToList();
 
-                using (var session = new MongoSession(_mongoConnectionString))
+                using (var session = new MongoSession(_connectionString))
                 {
 
                     var users = (from u in session.Users
@@ -321,7 +332,7 @@ namespace ExtendedMongoMembership
             try
             {
 
-                using (var session = new MongoSession(_mongoConnectionString))
+                using (var session = new MongoSession(_connectionString))
                 {
 
                     var role = (from r in session.Roles
@@ -355,7 +366,7 @@ namespace ExtendedMongoMembership
         {
             try
             {
-                using (var session = new MongoSession(_mongoConnectionString))
+                using (var session = new MongoSession(_connectionString))
                 {
 
                     var roles = from r in session.Roles
@@ -382,7 +393,7 @@ namespace ExtendedMongoMembership
             try
             {
 
-                using (var session = new MongoSession(_mongoConnectionString))
+                using (var session = new MongoSession(_connectionString))
                 {
 
                     var role = (from r in session.Roles
