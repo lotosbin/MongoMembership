@@ -1,7 +1,40 @@
+# Ignore file for Visual Studio 2008
+
+# use glob syntax
 syntax: glob
-Jobs4Use/_ReSharper.Jobs4Use
-Jobs4Use/Jobs4Use.WebUI/bin
-Jobs4Use/Jobs4Use.WebUI/obj
-Jobs4Use/Jobs4Use.Core/obj
-Jobs4Use/Jobs4Use.Core/bin
-Jobs4Use/Jobs4Use.v11.suo
+
+# Ignore Visual Studio 2008 files
+*.obj
+*.exe
+*.pdb
+*.user
+*.aps
+*.pch
+*.vspscc
+*_i.c
+*_p.c
+*.ncb
+*.suo
+*.tlb
+*.tlh
+*.bak
+*.cache
+*.ilk
+*.log
+*.lib
+*.sbr
+*.scc
+*.orig
+[Bb]in
+[Dd]ebug*/
+obj/
+[Rr]elease*/
+build*/
+_ReSharper*/
+[Pp]ackages*/
+[Tt]est[Rr]esult*
+[Bb]uild[Ll]og.*
+*.[Pp]ublish.xml
+Thumbs.db
+desktop.ini
+src/SimpleTimeTrack.Web/Content/Reports/*.csv

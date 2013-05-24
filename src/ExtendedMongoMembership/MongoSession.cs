@@ -56,7 +56,6 @@ namespace ExtendedMongoMembership
 
         public void Dispose()
         {
-            _server.Disconnect();
         }
 
         #endregion
