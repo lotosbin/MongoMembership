@@ -14,6 +14,7 @@ namespace ExtendedMongoMembership
         private string _AppName;
         private string _connectionString;
         private bool _useAppHarbor;
+        private MongoSession _session;
 
         public override void Initialize(string name, NameValueCollection config)
         {
@@ -50,6 +51,7 @@ namespace ExtendedMongoMembership
                     throw new ProviderException(StringResources.GetString(StringResources.Connection_string_not_found, temp));
                 }
             }
+            _session = new MongoSession(_connectionString);
 
             _AppName = config["applicationName"];
 
@@ -84,24 +86,21 @@ namespace ExtendedMongoMembership
 
             try
             {
-                using (var session = new MongoSession(_connectionString))
-                {
+                var user = (from u in _session.Users
+                            where u.UserName == username
+                            select u).SingleOrDefault();
 
-                    var user = (from u in session.Users
-                                where u.UserName == username
-                                select u).SingleOrDefault();
-
-                    if (user == null)
-                        return false;
-
-                    if (user.Roles == null)
-                        return false;
-
-                    if (user.Roles.Where(r => r.RoleName == roleName).Any())
-                        return true;
-
+                if (user == null)
                     return false;
-                }
+
+                if (user.Roles == null)
+                    return false;
+
+                if (user.Roles.Where(r => r.RoleName == roleName).Any())
+                    return true;
+
+                return false;
+
             }
             catch
             {
@@ -118,22 +117,18 @@ namespace ExtendedMongoMembership
 
             try
             {
+                var user = (from u in _session.Users
+                            where u.UserName == username
+                            select u).SingleOrDefault();
 
-                using (var session = new MongoSession(_connectionString))
-                {
+                if (user == null)
+                    return new string[0];
 
-                    var user = (from u in session.Users
-                                where u.UserName == username
-                                select u).SingleOrDefault();
+                if (user.Roles == null)
+                    return new string[0];
 
-                    if (user == null)
-                        return new string[0];
+                return user.Roles.Select(r => r.RoleName).ToArray();
 
-                    if (user.Roles == null)
-                        return new string[0];
-
-                    return user.Roles.Select(r => r.RoleName).ToArray();
-                }
             }
             catch
             {
@@ -147,28 +142,24 @@ namespace ExtendedMongoMembership
             SecUtility.CheckParameter(ref roleName, true, true, true, 256, "roleName");
             try
             {
+                var roles = from r in _session.Roles
+                            where r.RoleName == roleName
+                            select r;
 
-                using (var session = new MongoSession(_connectionString))
+                if (roles.Any())
                 {
-
-                    var roles = from r in session.Roles
-                                where r.RoleName == roleName
-                                select r;
-
-                    if (roles.Any())
-                    {
-                        throw new ProviderException(StringResources.GetString(StringResources.Provider_role_already_exists, roleName));
-                    }
-
-
-                    var role = new MembershipRole
-                                   {
-                                       RoleName = roleName,
-                                       LoweredRoleName = roleName.ToLowerInvariant()
-                                   };
-
-                    session.Add(role);
+                    throw new ProviderException(StringResources.GetString(StringResources.Provider_role_already_exists, roleName));
                 }
+
+
+                var role = new MembershipRole
+                               {
+                                   RoleName = roleName,
+                                   LoweredRoleName = roleName.ToLowerInvariant()
+                               };
+
+                _session.Add(role);
+
             }
             catch
             {
@@ -182,29 +173,25 @@ namespace ExtendedMongoMembership
             SecUtility.CheckParameter(ref roleName, true, true, true, 256, "roleName");
             try
             {
+                var role = (from r in _session.Roles
+                            where r.RoleName == roleName
+                            select r).SingleOrDefault();
 
-                using (var session = new MongoSession(_connectionString))
+
+                var users = _session.Users
+                    .Where(u => u.Roles != null)
+                    .Where(u => u.Roles.Any(r => r.RoleName == roleName));
+
+
+                if (users.Any() && throwOnPopulatedRole)
                 {
-
-                    var role = (from r in session.Roles
-                                where r.RoleName == roleName
-                                select r).SingleOrDefault();
-
-
-                    var users = session.Users
-                        .Where(u => u.Roles != null)
-                        .Where(u => u.Roles.Any(r => r.RoleName == roleName));
-
-
-                    if (users.Any() && throwOnPopulatedRole)
-                    {
-                        throw new ProviderException(StringResources.GetString(StringResources.Role_is_not_empty));
-                    }
-
-                    session.DeleteById<MembershipRole>(role.RoleId);
-
-                    return true;
+                    throw new ProviderException(StringResources.GetString(StringResources.Role_is_not_empty));
                 }
+
+                _session.DeleteById<MembershipRole>(role.RoleId);
+
+                return true;
+
             }
             catch
             {
@@ -219,15 +206,12 @@ namespace ExtendedMongoMembership
 
             try
             {
-                using (var session = new MongoSession(_connectionString))
-                {
+                var role = (from r in _session.Roles
+                            where r.RoleName == roleName
+                            select r).SingleOrDefault();
 
-                    var role = (from r in session.Roles
-                                where r.RoleName == roleName
-                                select r).SingleOrDefault();
+                return (role != null);
 
-                    return (role != null);
-                }
             }
             catch
             {
@@ -244,35 +228,30 @@ namespace ExtendedMongoMembership
 
             try
             {
-
                 List<string> _usernames = usernames.ToList();
                 List<string> _roleNames = roleNames.ToList();
 
-                using (var session = new MongoSession(_connectionString))
+                var users = (from u in _session.Users
+                             where _usernames.Contains(u.UserName)
+                             select u).ToList();
+
+                var roles = (from r in _session.Roles
+                             where _roleNames.Contains(r.RoleName)
+                             select r).ToList();
+
+                foreach (var userEntity in users)
                 {
-
-                    var users = (from u in session.Users
-                                 where _usernames.Contains(u.UserName)
-                                 select u).ToList();
-
-                    var roles = (from r in session.Roles
-                                 where _roleNames.Contains(r.RoleName)
-                                 select r).ToList();
-
-                    foreach (var userEntity in users)
+                    if (userEntity.Roles.Any())
                     {
-                        if (userEntity.Roles.Any())
-                        {
-                            var newRoles = roles.Except(userEntity.Roles);
-                            userEntity.Roles.AddRange(newRoles);
-                        }
-                        else
-                        {
-                            userEntity.Roles.AddRange(roles);
-                        }
-
-                        session.Save(userEntity);
+                        var newRoles = roles.Except(userEntity.Roles);
+                        userEntity.Roles.AddRange(newRoles);
                     }
+                    else
+                    {
+                        userEntity.Roles.AddRange(roles);
+                    }
+
+                    _session.Save(userEntity);
                 }
             }
             catch
@@ -291,32 +270,29 @@ namespace ExtendedMongoMembership
                 List<string> _usernames = usernames.ToList();
                 List<string> _roleNames = roleNames.ToList();
 
-                using (var session = new MongoSession(_connectionString))
+                var users = (from u in _session.Users
+                             where _usernames.Contains(u.UserName)
+                             select u).ToList();
+
+                var roles = (from r in _session.Roles
+                             where _roleNames.Contains(r.RoleName)
+                             select r).ToList();
+
+                foreach (var userEntity in users)
                 {
-
-                    var users = (from u in session.Users
-                                 where _usernames.Contains(u.UserName)
-                                 select u).ToList();
-
-                    var roles = (from r in session.Roles
-                                 where _roleNames.Contains(r.RoleName)
-                                 select r).ToList();
-
-                    foreach (var userEntity in users)
+                    if (userEntity.Roles.Any())
                     {
-                        if (userEntity.Roles.Any())
-                        {
-                            int oldCount = userEntity.Roles.Count;
-                            var matchedRoles = roles.Intersect(userEntity.Roles, new RoleComparer());
+                        int oldCount = userEntity.Roles.Count;
+                        var matchedRoles = roles.Intersect(userEntity.Roles, new RoleComparer());
 
-                            foreach (var matchedRole in matchedRoles)
-                                userEntity.Roles.Remove(matchedRole);
+                        foreach (var matchedRole in matchedRoles)
+                            userEntity.Roles.Remove(matchedRole);
 
-                            if (oldCount != userEntity.Roles.Count)
-                                session.Save(userEntity);
-                        }
+                        if (oldCount != userEntity.Roles.Count)
+                            _session.Save(userEntity);
                     }
                 }
+
             }
             catch
             {
@@ -332,28 +308,24 @@ namespace ExtendedMongoMembership
 
             try
             {
+                var role = (from r in _session.Roles
+                            where r.RoleName == roleName
+                            select r).SingleOrDefault();
 
-                using (var session = new MongoSession(_connectionString))
+                if (role == null)
                 {
-
-                    var role = (from r in session.Roles
-                                where r.RoleName == roleName
-                                select r).SingleOrDefault();
-
-                    if (role == null)
-                    {
-                        throw new ProviderException(StringResources.GetString(StringResources.Provider_role_not_found, roleName));
-                    }
-
-                    var users = from u in session.Users
-                                where u.Roles.Any(r => r.RoleName == roleName)
-                                select u;
-
-                    if (users == null || !users.Any())
-                        return new string[0];
-
-                    return users.Select(u => u.UserName).ToArray();
+                    throw new ProviderException(StringResources.GetString(StringResources.Provider_role_not_found, roleName));
                 }
+
+                var users = from u in _session.Users
+                            where u.Roles.Any(r => r.RoleName == roleName)
+                            select u;
+
+                if (users == null || !users.Any())
+                    return new string[0];
+
+                return users.Select(u => u.UserName).ToArray();
+
             }
             catch
             {
@@ -367,17 +339,14 @@ namespace ExtendedMongoMembership
         {
             try
             {
-                using (var session = new MongoSession(_connectionString))
-                {
+                var roles = from r in _session.Roles
+                            select r;
 
-                    var roles = from r in session.Roles
-                                select r;
+                if (roles == null || !roles.Any())
+                    return new string[0];
 
-                    if (roles == null || !roles.Any())
-                        return new string[0];
+                return roles.Select(u => u.RoleName).ToArray();
 
-                    return roles.Select(u => u.RoleName).ToArray();
-                }
             }
             catch
             {
@@ -393,29 +362,25 @@ namespace ExtendedMongoMembership
 
             try
             {
+                var role = (from r in _session.Roles
+                            where r.RoleName == roleName
+                            select r).SingleOrDefault();
 
-                using (var session = new MongoSession(_connectionString))
+                if (role == null)
                 {
-
-                    var role = (from r in session.Roles
-                                where r.RoleName == roleName
-                                select r).SingleOrDefault();
-
-                    if (role == null)
-                    {
-                        throw new ProviderException(StringResources.GetString(StringResources.Provider_role_not_found, roleName));
-                    }
-
-                    var users = from u in session.Users
-                                where u.UserName == usernameToMatch &&
-                                u.Roles.Any(r => r.RoleName == roleName)
-                                select u;
-
-                    if (users == null || !users.Any())
-                        return new string[0];
-
-                    return users.Select(u => u.UserName).ToArray();
+                    throw new ProviderException(StringResources.GetString(StringResources.Provider_role_not_found, roleName));
                 }
+
+                var users = from u in _session.Users
+                            where u.UserName == usernameToMatch &&
+                            u.Roles.Any(r => r.RoleName == roleName)
+                            select u;
+
+                if (users == null || !users.Any())
+                    return new string[0];
+
+                return users.Select(u => u.UserName).ToArray();
+
             }
             catch
             {

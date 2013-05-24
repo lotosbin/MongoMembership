@@ -65,10 +65,9 @@ namespace ExtendedMongoMembership.Services
         public void CreateProfile(TEntity entity)
         {
             int userId = 0;
-            using (var session = new MongoSession(_connectionString))
-            {
-                userId = session.GetNextSequence("user_id");
-            }
+            var session = new MongoSession(_connectionString);
+            userId = session.GetNextSequence("user_id");
+
             entity.UserId = userId;
             Save(entity);
         }

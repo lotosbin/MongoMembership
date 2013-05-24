@@ -12,12 +12,11 @@ namespace ExtendedMongoMembership
 {
 
     /*internal*/
-    public class MongoSession : IDisposable
+    public class MongoSession
     {
         private MongoClient _client;
         private MongoServer _server;
         private MongoDatabase _provider;
-
         private MongoUrl _mongoUrl;
 
         public MongoSession()
@@ -51,14 +50,6 @@ namespace ExtendedMongoMembership
         {
             get { return _provider.GetCollection<OAuthToken>("OAuthTokens").AsQueryable(); }
         }
-
-        #region IDisposable Members
-
-        public void Dispose()
-        {
-        }
-
-        #endregion
 
         public void Add<T>(T item) where T : class
         {
