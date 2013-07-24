@@ -183,9 +183,16 @@ namespace ExtendedMongoMembership
                     .Where(u => u.Roles.Any(r => r.RoleName == roleName));
 
 
-                if (users.Any() && throwOnPopulatedRole)
+                if (users.Any())
                 {
-                    throw new ProviderException(StringResources.GetString(StringResources.Role_is_not_empty));
+                    if (throwOnPopulatedRole)
+                    {
+                        throw new ProviderException(StringResources.GetString(StringResources.Role_is_not_empty));
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
 
                 _session.DeleteById<MembershipRole>(role.RoleId);

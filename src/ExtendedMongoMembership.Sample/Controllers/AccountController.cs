@@ -43,11 +43,30 @@ namespace ExtendedMongoMembership.Sample.Controllers
             return View(model);
         }
 
+        [AllowAnonymous]
+        public ActionResult LoginUser1()
+        {
+            WebSecurity.Login("user1", "user1", true);
+            return RedirectToLocal("");
+        }
+
+        [AllowAnonymous]
+        public ActionResult LoginUser2()
+        {
+            WebSecurity.Login("user2", "user2", true);
+            return RedirectToLocal("");
+        }
+
+        [AllowAnonymous]
+        public ActionResult LoginUser3()
+        {
+            WebSecurity.Login("user3", "user3", true);
+            return RedirectToLocal("");
+        }
+
         //
         // POST: /Account/LogOff
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
         public ActionResult LogOff()
         {
             WebSecurity.Logout();

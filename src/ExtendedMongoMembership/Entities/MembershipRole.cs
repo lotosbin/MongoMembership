@@ -1,13 +1,17 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 using System;
+using System.Collections.Generic;
 
 namespace ExtendedMongoMembership
 {
+    [BsonIgnoreExtraElements]
     public class MembershipRole : IEquatable<MembershipRole>
     {
         public MembershipRole()
         {
             RoleId = Guid.NewGuid();
+            Permissions = new List<Guid>();
         }
 
         [BsonId]
@@ -15,6 +19,11 @@ namespace ExtendedMongoMembership
         public string RoleName { get; set; }
         public string LoweredRoleName { get; set; }
         public string Description { get; set; }
+
+        public List<Guid> Permissions { get; set; }
+
+        [BsonExtraElements]
+        public BsonDocument CatchAll { get; set; }
 
         public bool Equals(MembershipRole other)
         {

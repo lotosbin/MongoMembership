@@ -1,4 +1,6 @@
-﻿using System.Web.Http;
+﻿using ExtendedMongoMembership.Sample.App_Start;
+using System.Configuration;
+using System.Web.Http;
 using System.Web.Mvc;
 using System.Web.Optimization;
 using System.Web.Routing;
@@ -16,9 +18,15 @@ namespace ExtendedMongoMembership.Sample
 
             WebApiConfig.Register(GlobalConfiguration.Configuration);
             FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
-            RouteConfig.RegisterRoutes(RouteTable.Routes);
             BundleConfig.RegisterBundles(BundleTable.Bundles);
             AuthConfig.RegisterAuth();
+            BootstrapSupport.BootstrapBundleConfig.RegisterBundles(System.Web.Optimization.BundleTable.Bundles);
+            BootstrapMvcSample.ExampleLayoutsRouteConfig.RegisterRoutes(RouteTable.Routes);
+
+            RouteConfig.RegisterRoutes(RouteTable.Routes);
+
+            MembershipManager.Init(typeof(Permissions), null, ConfigurationManager.ConnectionStrings["mongodb"].ConnectionString);
+            DefaultDataConfig.Populate();
         }
     }
 }
