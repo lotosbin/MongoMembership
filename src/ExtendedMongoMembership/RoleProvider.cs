@@ -76,7 +76,6 @@ namespace ExtendedMongoMembership
             }
         }
 
-
         public override bool IsUserInRole(string username, string roleName)
         {
             SecUtility.CheckParameter(ref roleName, true, true, true, 256, "roleName");
@@ -108,7 +107,6 @@ namespace ExtendedMongoMembership
             }
         }
 
-
         public override string[] GetRolesForUser(string username)
         {
             SecUtility.CheckParameter(ref username, true, false, true, 256, "username");
@@ -135,7 +133,6 @@ namespace ExtendedMongoMembership
                 throw;
             }
         }
-
 
         public override void CreateRole(string roleName)
         {
@@ -166,7 +163,6 @@ namespace ExtendedMongoMembership
                 throw;
             }
         }
-
 
         public override bool DeleteRole(string roleName, bool throwOnPopulatedRole)
         {
@@ -206,7 +202,6 @@ namespace ExtendedMongoMembership
             }
         }
 
-
         public override bool RoleExists(string roleName)
         {
             SecUtility.CheckParameter(ref roleName, true, true, true, 256, "roleName");
@@ -225,8 +220,6 @@ namespace ExtendedMongoMembership
                 throw;
             }
         }
-
-
 
         public override void AddUsersToRoles(string[] usernames, string[] roleNames)
         {
@@ -307,8 +300,6 @@ namespace ExtendedMongoMembership
             }
         }
 
-
-
         public override string[] GetUsersInRole(string roleName)
         {
             SecUtility.CheckParameter(ref roleName, true, true, true, 256, "roleName");
@@ -340,8 +331,6 @@ namespace ExtendedMongoMembership
             }
         }
 
-
-
         public override string[] GetAllRoles()
         {
             try
@@ -360,7 +349,6 @@ namespace ExtendedMongoMembership
                 throw;
             }
         }
-
 
         public override string[] FindUsersInRole(string roleName, string usernameToMatch)
         {
@@ -409,9 +397,7 @@ namespace ExtendedMongoMembership
             }
         }
 
-        #region static
-
-        public static void RemoveUsersFromRoles(string[] usernames, Guid[] roleIds)
+        public void RemoveUsersFromRoles(string[] usernames, params Guid[] roleIds)
         {
             SecUtility.CheckArrayParameter(ref usernames, true, true, true, 256, "usernames");
             var session = new MongoSession(MongoMembershipProvider.ConnectionString);
@@ -451,7 +437,7 @@ namespace ExtendedMongoMembership
             }
         }
 
-        public static void AddUsersToRoles(string[] usernames, Guid[] roleIds)
+        public void AddUsersToRoles(string[] usernames, params Guid[] roleIds)
         {
             SecUtility.CheckArrayParameter(ref usernames, true, true, true, 256, "usernames");
             var session = new MongoSession(MongoMembershipProvider.ConnectionString);
@@ -489,8 +475,6 @@ namespace ExtendedMongoMembership
                 throw;
             }
         }
-
-        #endregion
     }
 
 }

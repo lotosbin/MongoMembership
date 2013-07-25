@@ -11,5 +11,8 @@ namespace ExtendedMongoMembership.Entities
         [BsonExtraElements]
         public BsonDocument CatchAll { get; set; }
         public string UserName { get; set; }
+
+        public List<MembershipRole> Roles { get; set; }
+        public List<Guid> Permissions { get; set; }
     }
 }

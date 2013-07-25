@@ -25,8 +25,7 @@ namespace ExtendedMongoMembership
         public DateTime? PasswordVerificationTokenExpirationDate { get; set; }
         public DateTime? LastLoginDate { get; set; }
 
-        public List<MembershipRole> Roles { get; set; }
-        public List<Guid> Permissions { get; set; }
+
         public List<OAuthAccountDataEmbedded> OAuthData { get; set; }
     }
 }
