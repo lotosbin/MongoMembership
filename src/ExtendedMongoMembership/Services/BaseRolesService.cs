@@ -10,7 +10,8 @@ using System.Threading.Tasks;
 
 namespace ExtendedMongoMembership.Services
 {
-    public abstract class BaseRolesService : IBaseRolesService
+    public abstract class BaseRolesService<TDomain> : IBaseService<TDomain>
+        where TDomain : MembershipRoleBase
     {
         protected virtual string GetCollectionName()
         {
@@ -42,7 +43,7 @@ namespace ExtendedMongoMembership.Services
 
         #region Public Methods
 
-        public virtual MembershipRoleBase GetProfileById(int id)
+        public virtual TDomain GetById(dynamic id)
         {
             var collection = GetDefaultCollection();
             var item = collection.FindOneById(id);
@@ -50,21 +51,21 @@ namespace ExtendedMongoMembership.Services
             return item;
         }
 
-        public virtual IEnumerable<MembershipRoleBase> GetRoles()
+        public virtual IEnumerable<TDomain> GetAll()
         {
             var collection = GetDefaultCollection();
 
             return collection.AsQueryable();
         }
 
-        public virtual void Save(MembershipRoleBase entity)
+        public virtual void Save(TDomain entity)
         {
             var collection = GetDefaultCollection();
 
             collection.Save(entity);
         }
 
-        public virtual void Save(IEnumerable<MembershipRoleBase> entities)
+        public virtual void Save(IEnumerable<TDomain> entities)
         {
             foreach (var entity in entities)
             {
@@ -72,15 +73,15 @@ namespace ExtendedMongoMembership.Services
             }
         }
 
-        public void Delete(IEnumerable<MembershipRoleBase> entities)
+        public void Delete(IEnumerable<TDomain> entities)
         {
-            foreach (MembershipRoleBase e in entities)
+            foreach (TDomain e in entities)
             {
                 Delete(e);
             }
         }
 
-        public void Delete(MembershipRoleBase entity)
+        public void Delete(TDomain entity)
         {
             var collection = GetDefaultCollection();
             var query = Query.EQ("_id", entity.RoleId);
@@ -92,27 +93,27 @@ namespace ExtendedMongoMembership.Services
         #region Helper Methods
 
 
-        protected virtual MongoCollection<MembershipRoleBase> GetDefaultCollection()
+        protected virtual MongoCollection<TDomain> GetDefaultCollection()
         {
             var collectionName = GetCollectionName();
-            var collection = _database.GetCollection<MembershipRoleBase>(collectionName);
+            var collection = _database.GetCollection<TDomain>(collectionName);
             return collection;
         }
 
         #endregion
 
-        public MembershipRoleBase GetRoleById(Guid id)
+        public TDomain GetRoleById(Guid id)
         {
             var collection = GetDefaultCollection();
 
             return collection.AsQueryable().FirstOrDefault(x => x.RoleId == id);
         }
 
-        public MembershipRoleBase GetRoleByRoleName(string roleName)
+        public TDomain GetByName(string name)
         {
             var collection = GetDefaultCollection();
 
-            return collection.AsQueryable().FirstOrDefault(x => x.RoleName == roleName);
+            return collection.AsQueryable().FirstOrDefault(x => x.RoleName == name);
         }
     }
 }

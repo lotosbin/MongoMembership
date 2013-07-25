@@ -1,4 +1,5 @@
 ﻿using ExtendedMongoMembership.Entities;
+using ExtendedMongoMembership.Services.Interfaces;
 using MongoDB.Driver;
 using MongoDB.Driver.Builders;
 using MongoDB.Driver.Linq;
@@ -7,7 +8,8 @@ using System.Linq;
 
 namespace ExtendedMongoMembership.Services
 {
-    public abstract class UserProfileServiceBase : IUserProfileServiceBase
+    public abstract class BaseUsersService<TDomain> : IBaseService<TDomain>
+        where TDomain : MembershipAccountBase
     {
         protected virtual string GetCollectionName()
         {
@@ -39,7 +41,7 @@ namespace ExtendedMongoMembership.Services
 
         #region Public Methods
 
-        public virtual MembershipAccountBase GetProfileById(int id)
+        public virtual TDomain GetById(dynamic id)
         {
             var collection = GetDefaultCollection();
             var item = collection.FindOneById(id);
@@ -47,36 +49,29 @@ namespace ExtendedMongoMembership.Services
             return item;
         }
 
-        public virtual IEnumerable<MembershipAccountBase> GetAllProfiles()
+        public virtual IEnumerable<TDomain> GetAll()
         {
             var collection = GetDefaultCollection();
 
             return collection.AsQueryable();
         }
 
-        protected virtual void Save(MembershipAccountBase entity)
+        public virtual void Save(TDomain entity)
         {
             var collection = GetDefaultCollection();
+            if (entity.UserId == 0)
+            {
+                int userId = 0;
+                var session = new MongoSession(_connectionString);
+                userId = session.GetNextSequence("user_id");
+
+                entity.UserId = userId;
+            }
 
             collection.Save(entity);
         }
 
-        public void CreateProfile(MembershipAccountBase entity)
-        {
-            int userId = 0;
-            var session = new MongoSession(_connectionString);
-            userId = session.GetNextSequence("user_id");
-
-            entity.UserId = userId;
-            Save(entity);
-        }
-
-        public void UpdateProfile(MembershipAccountBase entity)
-        {
-            Save(entity);
-        }
-
-        private void Save(IEnumerable<MembershipAccountBase> entities)
+        public virtual void Save(IEnumerable<TDomain> entities)
         {
             foreach (var entity in entities)
             {
@@ -84,15 +79,15 @@ namespace ExtendedMongoMembership.Services
             }
         }
 
-        public void Delete(IEnumerable<MembershipAccountBase> entities)
+        public void Delete(IEnumerable<TDomain> entities)
         {
-            foreach (MembershipAccountBase e in entities)
+            foreach (TDomain e in entities)
             {
-                DeleteProfile(e);
+                Delete(e);
             }
         }
 
-        public void DeleteProfile(MembershipAccountBase entity)
+        public void Delete(TDomain entity)
         {
             var collection = GetDefaultCollection();
             var query = Query.EQ("_id", entity.UserId);
@@ -104,19 +99,19 @@ namespace ExtendedMongoMembership.Services
         #region Helper Methods
 
 
-        protected virtual MongoCollection<MembershipAccountBase> GetDefaultCollection()
+        protected virtual MongoCollection<TDomain> GetDefaultCollection()
         {
             var collectionName = GetCollectionName();
-            var collection = _database.GetCollection<MembershipAccountBase>(collectionName);
+            var collection = _database.GetCollection<TDomain>(collectionName);
             return collection;
         }
 
         #endregion
 
 
-        public MembershipAccountBase GetProfileByUserName(string userName)
+        public TDomain GetByName(string name)
         {
-            return GetDefaultCollection().AsQueryable().FirstOrDefault(x => x.UserName == userName);
+            return GetDefaultCollection().AsQueryable().FirstOrDefault(x => x.UserName == name);
         }
     }
 }

@@ -286,7 +286,7 @@ namespace ExtendedMongoMembership.Sample.Controllers
                     DefaultUserProfileService service = new DefaultUserProfileService(str);
                     SampleUserProfile profile = new SampleUserProfile();
                     profile.UserName = model.UserName;
-                    service.CreateProfile(profile);
+                    service.Save(profile);
 
                     OAuthWebSecurity.CreateOrUpdateAccount(provider, providerUserId, model.UserName);
                     OAuthWebSecurity.Login(provider, providerUserId, createPersistentCookie: false);

@@ -76,9 +76,8 @@
     <Compile Include="RoleProvider.cs" />
     <Compile Include="Helpers\SecUtil.cs" />
     <Compile Include="Services\BaseRolesService.cs" />
-    <Compile Include="Services\Interfaces\IBaseRolesService.cs" />
-    <Compile Include="Services\Interfaces\IUserProfileService.cs" />
-    <Compile Include="Services\UserProfileService.cs" />
+    <Compile Include="Services\Interfaces\IBaseService.cs" />
+    <Compile Include="Services\BaseUsersService.cs" />
     <Compile Include="Helpers\ShortGuid.cs" />
     <Compile Include="Helpers\ShortGuidGenerator.cs" />
     <Compile Include="MongoMembershipProvider.cs" />
