@@ -408,6 +408,89 @@ namespace ExtendedMongoMembership
                 }
             }
         }
+
+        #region static
+
+        public static void RemoveUsersFromRoles(string[] usernames, Guid[] roleIds)
+        {
+            SecUtility.CheckArrayParameter(ref usernames, true, true, true, 256, "usernames");
+            var session = new MongoSession(MongoMembershipProvider.ConnectionString);
+
+            try
+            {
+                List<string> _usernames = usernames.ToList();
+                List<Guid> _roleIds = roleIds.ToList();
+
+                var users = (from u in session.Users
+                             where _usernames.Contains(u.UserName)
+                             select u).ToList();
+
+                var roles = (from r in session.Roles
+                             where _roleIds.Contains(r.RoleId)
+                             select r).ToList();
+
+                foreach (var userEntity in users)
+                {
+                    if (userEntity.Roles.Any())
+                    {
+                        int oldCount = userEntity.Roles.Count;
+                        var matchedRoles = roles.Intersect(userEntity.Roles, new RoleComparer());
+
+                        foreach (var matchedRole in matchedRoles)
+                            userEntity.Roles.Remove(matchedRole);
+
+                        if (oldCount != userEntity.Roles.Count)
+                            session.Save(userEntity);
+                    }
+                }
+
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        public static void AddUsersToRoles(string[] usernames, Guid[] roleIds)
+        {
+            SecUtility.CheckArrayParameter(ref usernames, true, true, true, 256, "usernames");
+            var session = new MongoSession(MongoMembershipProvider.ConnectionString);
+
+            try
+            {
+                List<string> _usernames = usernames.ToList();
+                List<Guid> _roleNames = roleIds.ToList();
+
+                var users = (from u in session.Users
+                             where _usernames.Contains(u.UserName)
+                             select u).ToList();
+
+                var roles = (from r in session.Roles
+                             where _roleNames.Contains(r.RoleId)
+                             select r).ToList();
+
+                foreach (var userEntity in users)
+                {
+                    if (userEntity.Roles.Any())
+                    {
+                        var newRoles = roles.Except(userEntity.Roles);
+                        userEntity.Roles.AddRange(newRoles);
+                    }
+                    else
+                    {
+                        userEntity.Roles.AddRange(roles);
+                    }
+
+                    session.Save(userEntity);
+                }
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        #endregion
     }
 
 }

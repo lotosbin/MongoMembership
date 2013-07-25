@@ -74,6 +74,7 @@
     <Compile Include="Entities\MembershipRole.cs" />
     <Compile Include="RoleProvider.cs" />
     <Compile Include="Helpers\SecUtil.cs" />
+    <Compile Include="RolesProviderExtensions.cs" />
     <Compile Include="Services\Interfaces\IUserProfileService.cs" />
     <Compile Include="Services\UserProfileService.cs" />
     <Compile Include="Helpers\ShortGuid.cs" />
