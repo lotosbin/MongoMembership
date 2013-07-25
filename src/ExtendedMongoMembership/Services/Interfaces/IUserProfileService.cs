@@ -7,14 +7,14 @@ using System.Threading.Tasks;
 
 namespace ExtendedMongoMembership.Services
 {
-    public interface IUserProfileServiceBase<TEntity>
+    public interface IUserProfileServiceBase
     {
-        TEntity GetProfileById(int id);
-        TEntity GetProfileByUserName(string userName);
-        IEnumerable<TEntity> GetAllProfiles();
-        void CreateProfile(TEntity entity);
-        void UpdateProfile(TEntity entity);
-        void Delete(IEnumerable<TEntity> entities);
-        void DeleteProfile(TEntity entity);
+        MembershipAccountBase GetProfileById(int id);
+        MembershipAccountBase GetProfileByUserName(string userName);
+        IEnumerable<MembershipAccountBase> GetAllProfiles();
+        void CreateProfile(MembershipAccountBase entity);
+        void UpdateProfile(MembershipAccountBase entity);
+        void Delete(IEnumerable<MembershipAccountBase> entities);
+        void DeleteProfile(MembershipAccountBase entity);
     }
 }

@@ -1,7 +1,9 @@
-﻿
-using MongoDB.Bson;
+﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
-namespace ExtendedMongoMembership.Entities
+using System;
+using System.Collections.Generic;
+
+namespace ExtendedMongoMembership
 {
     [BsonIgnoreExtraElements]
     public class MembershipAccountBase

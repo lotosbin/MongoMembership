@@ -1,17 +1,20 @@
-﻿using ExtendedMongoMembership.Entities;
+﻿using ExtendedMongoMembership.Services.Interfaces;
 using MongoDB.Driver;
-using MongoDB.Driver.Builders;
 using MongoDB.Driver.Linq;
+using MongoDB.Driver.Builders;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace ExtendedMongoMembership.Services
 {
-    public abstract class UserProfileServiceBase : IUserProfileServiceBase
+    public abstract class BaseRolesService : IBaseRolesService
     {
         protected virtual string GetCollectionName()
         {
-            return "Users";
+            return "Roles";
         }
 
         #region Member Vars
@@ -26,7 +29,7 @@ namespace ExtendedMongoMembership.Services
 
         #region Constructors
 
-        public UserProfileServiceBase(string connectionString)
+        public BaseRolesService(string connectionString)
         {
             _connectionString = connectionString;
             _databaseName = connectionString.Substring(connectionString.LastIndexOf('/') + 1);
@@ -39,7 +42,7 @@ namespace ExtendedMongoMembership.Services
 
         #region Public Methods
 
-        public virtual MembershipAccountBase GetProfileById(int id)
+        public virtual MembershipRoleBase GetProfileById(int id)
         {
             var collection = GetDefaultCollection();
             var item = collection.FindOneById(id);
@@ -47,36 +50,21 @@ namespace ExtendedMongoMembership.Services
             return item;
         }
 
-        public virtual IEnumerable<MembershipAccountBase> GetAllProfiles()
+        public virtual IEnumerable<MembershipRoleBase> GetRoles()
         {
             var collection = GetDefaultCollection();
 
             return collection.AsQueryable();
         }
 
-        protected virtual void Save(MembershipAccountBase entity)
+        public virtual void Save(MembershipRoleBase entity)
         {
             var collection = GetDefaultCollection();
 
             collection.Save(entity);
         }
 
-        public void CreateProfile(MembershipAccountBase entity)
-        {
-            int userId = 0;
-            var session = new MongoSession(_connectionString);
-            userId = session.GetNextSequence("user_id");
-
-            entity.UserId = userId;
-            Save(entity);
-        }
-
-        public void UpdateProfile(MembershipAccountBase entity)
-        {
-            Save(entity);
-        }
-
-        private void Save(IEnumerable<MembershipAccountBase> entities)
+        public virtual void Save(IEnumerable<MembershipRoleBase> entities)
         {
             foreach (var entity in entities)
             {
@@ -84,18 +72,18 @@ namespace ExtendedMongoMembership.Services
             }
         }
 
-        public void Delete(IEnumerable<MembershipAccountBase> entities)
+        public void Delete(IEnumerable<MembershipRoleBase> entities)
         {
-            foreach (MembershipAccountBase e in entities)
+            foreach (MembershipRoleBase e in entities)
             {
-                DeleteProfile(e);
+                Delete(e);
             }
         }
 
-        public void DeleteProfile(MembershipAccountBase entity)
+        public void Delete(MembershipRoleBase entity)
         {
             var collection = GetDefaultCollection();
-            var query = Query.EQ("_id", entity.UserId);
+            var query = Query.EQ("_id", entity.RoleId);
             collection.Remove(query);
         }
 
@@ -104,19 +92,27 @@ namespace ExtendedMongoMembership.Services
         #region Helper Methods
 
 
-        protected virtual MongoCollection<MembershipAccountBase> GetDefaultCollection()
+        protected virtual MongoCollection<MembershipRoleBase> GetDefaultCollection()
         {
             var collectionName = GetCollectionName();
-            var collection = _database.GetCollection<MembershipAccountBase>(collectionName);
+            var collection = _database.GetCollection<MembershipRoleBase>(collectionName);
             return collection;
         }
 
         #endregion
 
-
-        public MembershipAccountBase GetProfileByUserName(string userName)
+        public MembershipRoleBase GetRoleById(Guid id)
         {
-            return GetDefaultCollection().AsQueryable().FirstOrDefault(x => x.UserName == userName);
+            var collection = GetDefaultCollection();
+
+            return collection.AsQueryable().FirstOrDefault(x => x.RoleId == id);
+        }
+
+        public MembershipRoleBase GetRoleByRoleName(string roleName)
+        {
+            var collection = GetDefaultCollection();
+
+            return collection.AsQueryable().FirstOrDefault(x => x.RoleName == roleName);
         }
     }
 }

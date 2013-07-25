@@ -58,6 +58,7 @@
     <Compile Include="Default\DefaultRoles.cs" />
     <Compile Include="Entities\MembershipAccount.cs" />
     <Compile Include="Entities\MembershipPermission.cs" />
+    <Compile Include="Entities\MembershipRoleBase.cs" />
     <Compile Include="Entities\OAuthAccountDataEmbedded.cs" />
     <Compile Include="Entities\OAuthToken.cs" />
     <Compile Include="Entities\MembershipAccountBase.cs" />
@@ -74,6 +75,8 @@
     <Compile Include="Entities\MembershipRole.cs" />
     <Compile Include="RoleProvider.cs" />
     <Compile Include="Helpers\SecUtil.cs" />
+    <Compile Include="Services\BaseRolesService.cs" />
+    <Compile Include="Services\Interfaces\IBaseRolesService.cs" />
     <Compile Include="Services\Interfaces\IUserProfileService.cs" />
     <Compile Include="Services\UserProfileService.cs" />
     <Compile Include="Helpers\ShortGuid.cs" />
