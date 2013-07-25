@@ -11,6 +11,8 @@ namespace ExtendedMongoMembership
 {
     public static class PermissionsProvider
     {
+        #region ctor
+
         private static List<MembershipPermission> _allPermissions;
         private static DateTime _lastCacheUpdate;
         private static MongoSession _session;
@@ -22,6 +24,11 @@ namespace ExtendedMongoMembership
             MinutesToRefreshCache = 5;
             _session = new MongoSession(MongoMembershipProvider.ConnectionString);
         }
+
+        #endregion
+
+
+        #region public
 
         public static List<MembershipPermission> GetAllPermissions(bool useCache = true)
         {
@@ -85,37 +92,15 @@ namespace ExtendedMongoMembership
 
             try
             {
-                List<string> _permissions = permissionsArray.ToList();
-
-                var permissions = (from p in _session.Permissions
-                                   where _permissions.Contains(p.Name)
-                                   select p).ToList();
-
                 var role = _session.Roles.FirstOrDefault(x => x.RoleName == roleName);
                 var usersInRole = _session.Users.Where(x => x.Roles.Any(y => y.RoleName == roleName)).ToList();
 
+                var permissions = (from p in _session.Permissions
+                                   where permissionsArray.Contains(p.Name)
+                                   select p).ToList();
 
-                foreach (var perm in permissions)
-                {
-                    if (perm != null)
-                    {
-                        if (!role.Permissions.Contains(perm.Id))
-                        {
-                            role.Permissions.Add(perm.Id);
 
-                            foreach (var user in usersInRole)
-                            {
-                                var roleToChange = user.Roles.FirstOrDefault(x => x.RoleName == role.RoleName);
-                                roleToChange.Permissions.Add(perm.Id);
-                            }
-                        }
-                    }
-                }
-                _session.Save(role);
-                foreach (var user in usersInRole)
-                {
-                    _session.Save(user);
-                }
+                ProcessActionPermissionsToRole(permissions, role, usersInRole, (array, id) => { array.Add(id); return array; });
 
             }
             catch
@@ -124,7 +109,29 @@ namespace ExtendedMongoMembership
             }
         }
 
-        public static void RemovePermissionsFromRole(string roleName, string[] permissionsArray)
+        public static void AssignPermissionsToRole(Guid roleId, params string[] permissionsArray)
+        {
+            SecUtility.CheckArrayParameter(ref permissionsArray, true, true, true, 256, "permissions");
+
+            try
+            {
+                var role = _session.Roles.FirstOrDefault(x => x.RoleId == roleId);
+                var usersInRole = _session.Users.Where(x => x.Roles.Any(y => y.RoleId == roleId)).ToList();
+
+                var permissions = (from p in _session.Permissions
+                                   where permissionsArray.Contains(p.Name)
+                                   select p).ToList();
+
+                ProcessActionPermissionsToRole(permissions, role, usersInRole, (array, id) => { array.Add(id); return array; });
+
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        public static void RemovePermissionsFromRole(string roleName, params string[] permissionsArray)
         {
             SecUtility.CheckArrayParameter(ref permissionsArray, true, true, true, 256, "permissions");
             SecUtility.CheckParameter(ref roleName, true, false, true, 256, "roleName");
@@ -141,33 +148,66 @@ namespace ExtendedMongoMembership
                 var usersInRole = _session.Users.Where(x => x.Roles.Any(y => y.RoleName == roleName)).ToList();
 
 
-                foreach (var perm in permissions)
-                {
-                    if (perm != null)
-                    {
-                        if (role.Permissions.Contains(perm.Id))
-                        {
-                            role.Permissions.Remove(perm.Id);
-
-                            foreach (var user in usersInRole)
-                            {
-                                var roleToChange = user.Roles.FirstOrDefault(x => x.RoleName == role.RoleName);
-                                roleToChange.Permissions.Remove(perm.Id);
-                            }
-                        }
-                    }
-                }
-                _session.Save(role);
-                foreach (var user in usersInRole)
-                {
-                    _session.Save(user);
-                }
-
+                ProcessActionPermissionsToRole(permissions, role, usersInRole, (array, id) => { array.Remove(id); return array; });
             }
             catch
             {
                 throw;
             }
         }
+
+        public static void RemovePermissionsFromRole(Guid roleId, params string[] permissionsArray)
+        {
+            SecUtility.CheckArrayParameter(ref permissionsArray, true, true, true, 256, "permissions");
+
+            try
+            {
+                var permissions = (from p in _session.Permissions
+                                   where permissionsArray.Contains(p.Name)
+                                   select p).ToList();
+
+                var role = _session.Roles.FirstOrDefault(x => x.RoleId == roleId);
+                var usersInRole = _session.Users.Where(x => x.Roles.Any(y => y.RoleId == roleId)).ToList();
+
+
+                ProcessActionPermissionsToRole(permissions, role, usersInRole, (array, id) => { array.Remove(id); return array; });
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        #endregion
+
+
+        #region private
+
+        private static void ProcessActionPermissionsToRole(List<MembershipPermission> permissions, MembershipRole role, List<MembershipAccount> usersInRole, Func<List<Guid>, Guid, List<Guid>> processOpUnderPermissions)
+        {
+            foreach (var perm in permissions)
+            {
+                if (perm != null)
+                {
+                    if (!role.Permissions.Contains(perm.Id))
+                    {
+                        processOpUnderPermissions(role.Permissions, perm.Id);
+
+                        foreach (var user in usersInRole)
+                        {
+                            var roleToChange = user.Roles.FirstOrDefault(x => x.RoleName == role.RoleName);
+                            processOpUnderPermissions(roleToChange.Permissions, perm.Id);
+                        }
+                    }
+                }
+            }
+            _session.Save(role);
+            foreach (var user in usersInRole)
+            {
+                _session.Save(user);
+            }
+        }
+
+        #endregion
     }
 }
