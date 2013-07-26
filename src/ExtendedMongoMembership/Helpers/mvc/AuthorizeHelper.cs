@@ -14,7 +14,7 @@ namespace ExtendedMongoMembership.Helpers.mvc
         public static bool CheckUser(MembershipAccount user, IQueryable<MembershipRole> roles, IQueryable<MembershipPermission> permissionsQuery, string[] currentPermissions)
         {
             List<MembershipPermission> allPermissions = permissionsQuery.ToList();
-            List<Guid> permissions = new List<Guid>();
+            List<string> permissions = new List<string>();
 
             if (user == null)
             {
@@ -32,7 +32,7 @@ namespace ExtendedMongoMembership.Helpers.mvc
             }
 
             var currentPermissionEntities = allPermissions.Where(x => currentPermissions.Any(y => y == x.Name)).ToList();
-            if (permissions.Any(x => currentPermissionEntities.FirstOrDefault(y => y.Id == x) != null))
+            if (permissions.Any(x => currentPermissionEntities.FirstOrDefault(y => y.Name == x) != null))
             {
                 return true;
             }

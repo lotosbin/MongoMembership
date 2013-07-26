@@ -83,7 +83,7 @@ namespace ExtendedMongoMembership
                     {
                         foreach (var p in permissions)
                         {
-                            role.Permissions.Add(p.Id);
+                            role.Permissions.Add(p.Name);
                         }
                     }
 

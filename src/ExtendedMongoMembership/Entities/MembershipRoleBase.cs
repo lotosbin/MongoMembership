@@ -14,7 +14,7 @@ namespace ExtendedMongoMembership
         public MembershipRoleBase()
         {
             RoleId = Guid.NewGuid();
-            Permissions = new List<Guid>();
+            Permissions = new List<string>();
         }
 
         [BsonId]
@@ -22,7 +22,7 @@ namespace ExtendedMongoMembership
         public string RoleName { get; set; }
         public string LoweredRoleName { get; set; }
 
-        public List<Guid> Permissions { get; set; }
+        public List<string> Permissions { get; set; }
 
         [BsonExtraElements]
         public BsonDocument CatchAll { get; set; }

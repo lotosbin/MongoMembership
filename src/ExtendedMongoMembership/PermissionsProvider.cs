@@ -67,12 +67,12 @@ namespace ExtendedMongoMembership
         public static bool DeletePermission(string name, bool throwException = true)
         {
             MembershipPermission permission = _session.Permissions.FirstOrDefault(x => x.Name == name);
-            var rolesWithPermissionCount = _session.Roles.Where(x => x.Permissions.Any(y => y == permission.Id)).Count();
-            var usersWithPermissionCount = _session.Users.Where(x => x.Permissions.Any(y => y == permission.Id)).Count();
+            var rolesWithPermissionCount = _session.Roles.Where(x => x.Permissions.Any(y => y == permission.Name)).Count();
+            var usersWithPermissionCount = _session.Users.Where(x => x.Permissions.Any(y => y == permission.Name)).Count();
 
             if (permission != null && rolesWithPermissionCount == 0 && usersWithPermissionCount == 0)
             {
-                _session.DeleteById<MembershipPermission>(permission.Id);
+                _session.DeleteById<MembershipPermission>(permission.Name);
 
                 return true;
             }
@@ -183,20 +183,20 @@ namespace ExtendedMongoMembership
 
         #region private
 
-        private static void ProcessActionPermissionsToRole(List<MembershipPermission> permissions, MembershipRole role, List<MembershipAccount> usersInRole, Func<List<Guid>, Guid, List<Guid>> processOpUnderPermissions)
+        private static void ProcessActionPermissionsToRole(List<MembershipPermission> permissions, MembershipRole role, List<MembershipAccount> usersInRole, Func<List<string>, string, List<string>> processOpUnderPermissions)
         {
             foreach (var perm in permissions)
             {
                 if (perm != null)
                 {
-                    if (!role.Permissions.Contains(perm.Id))
+                    if (!role.Permissions.Contains(perm.Name))
                     {
-                        processOpUnderPermissions(role.Permissions, perm.Id);
+                        processOpUnderPermissions(role.Permissions, perm.Name);
 
                         foreach (var user in usersInRole)
                         {
                             var roleToChange = user.Roles.FirstOrDefault(x => x.RoleName == role.RoleName);
-                            processOpUnderPermissions(roleToChange.Permissions, perm.Id);
+                            processOpUnderPermissions(roleToChange.Permissions, perm.Name);
                         }
                     }
                 }
