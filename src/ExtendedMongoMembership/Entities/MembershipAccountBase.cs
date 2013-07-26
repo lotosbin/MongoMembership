@@ -8,6 +8,12 @@ namespace ExtendedMongoMembership
     [BsonIgnoreExtraElements]
     public class MembershipAccountBase
     {
+        public MembershipAccountBase()
+        {
+            Roles = new List<MembershipRole>();
+            Permissions = new List<Guid>();
+        }
+
         [BsonId]
         public int UserId { get; set; }
         [BsonExtraElements]

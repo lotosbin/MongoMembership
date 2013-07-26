@@ -283,7 +283,7 @@ namespace ExtendedMongoMembership.Sample.Controllers
                 if (userId == -1)
                 {
                     string str = ConfigurationManager.ConnectionStrings["mongodb"].ConnectionString;
-                    DefaultUserProfileService service = new DefaultUserProfileService(str);
+                    DefaultUsersService service = new DefaultUsersService(str);
                     SampleUserProfile profile = new SampleUserProfile();
                     profile.UserName = model.UserName;
                     service.Save(profile);

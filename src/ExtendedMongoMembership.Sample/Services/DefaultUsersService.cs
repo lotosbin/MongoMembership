@@ -3,9 +3,9 @@ using ExtendedMongoMembership.Services;
 
 namespace ExtendedMongoMembership.Sample.Services
 {
-    public class DefaultUserProfileService : UserProfileServiceBase<SampleUserProfile>
+    public class DefaultUsersService : BaseUsersService<SampleUserProfile>, IUsersService
     {
-        public DefaultUserProfileService(string connectionString)
+        public DefaultUsersService(string connectionString)
             : base(connectionString)
         {
 

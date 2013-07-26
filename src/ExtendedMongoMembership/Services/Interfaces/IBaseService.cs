@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 namespace ExtendedMongoMembership.Services.Interfaces
 {
     public interface IBaseService<TDomian>
+        where TDomian : class
     {
         TDomian GetById(dynamic id);
         TDomian GetByName(string name);

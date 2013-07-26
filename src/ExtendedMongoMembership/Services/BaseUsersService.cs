@@ -28,7 +28,7 @@ namespace ExtendedMongoMembership.Services
 
         #region Constructors
 
-        public UserProfileServiceBase(string connectionString)
+        public BaseUsersService(string connectionString)
         {
             _connectionString = connectionString;
             _databaseName = connectionString.Substring(connectionString.LastIndexOf('/') + 1);

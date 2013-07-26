@@ -8,9 +8,7 @@ namespace ExtendedMongoMembership
     {
         public MembershipAccount()
         {
-            Roles = new List<MembershipRole>();
             OAuthData = new List<OAuthAccountDataEmbedded>();
-            Permissions = new List<Guid>();
         }
 
         public DateTime? CreateDate { get; set; }
