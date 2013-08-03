@@ -178,6 +178,32 @@ namespace ExtendedMongoMembership
             }
         }
 
+        public static void RemoveAllPermissionsFromRole(Guid roleId)
+        {
+            try
+            {
+                var role = _session.Roles.FirstOrDefault(x => x.RoleId == roleId);
+                var usersInRole = _session.Users.Where(x => x.Roles.Any(y => y.RoleId == roleId)).ToList();
+
+                role.Permissions.Clear();
+                foreach (var user in usersInRole)
+                {
+                    var roleToChange = user.Roles.FirstOrDefault(x => x.RoleName == role.RoleName);
+                    roleToChange.Permissions.Clear();
+                }
+
+                _session.Save(role);
+                foreach (var user in usersInRole)
+                {
+                    _session.Save(user);
+                }
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
         #endregion
 
 
