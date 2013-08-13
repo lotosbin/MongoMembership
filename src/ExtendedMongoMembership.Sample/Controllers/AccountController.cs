@@ -308,6 +308,32 @@ namespace ExtendedMongoMembership.Sample.Controllers
         //
         // GET: /Account/ExternalLoginFailure
 
+        public ActionResult DeleteYourselfWithMembership()
+        {
+            string username = User.Identity.Name;
+
+            var provider = Membership.Provider as ExtendedMembershipProvider;
+            provider.DeleteAccount(username);
+
+            WebSecurity.Logout();
+
+            return RedirectToAction("Register");
+        }
+
+        public ActionResult DeleteYourselfWithService()
+        {
+            string username = User.Identity.Name;
+
+            string str = ConfigurationManager.ConnectionStrings["mongodb"].ConnectionString;
+            DefaultUsersService service = new DefaultUsersService(str);
+            var user = service.GetByName(username);
+            service.Delete(user);
+
+            WebSecurity.Logout();
+
+            return RedirectToAction("Register");
+        }
+
         [AllowAnonymous]
         public ActionResult ExternalLoginFailure()
         {

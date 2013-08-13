@@ -95,12 +95,20 @@ namespace ExtendedMongoMembership
         public void DeleteById<T>(object id) where T : class
         {
             IMongoQuery query = Query.EQ("_id", id.ToString());
+            if (id is int)
+            {
+                query = Query.EQ("_id", id as int?);
+            }
             _provider.GetCollection<T>(GetCollectionName<T>()).Remove(query);
         }
 
         public void DeleteById(object id, string collectionName)
         {
             IMongoQuery query = Query.EQ("_id", id.ToString());
+            if (id is int)
+            {
+                query = Query.EQ("_id", id as int?);
+            }
             _provider.GetCollection(collectionName).Remove(query);
         }
 
