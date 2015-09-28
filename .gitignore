@@ -4,3 +4,4 @@
 *.user
 src/packages/*
 *.nupkg
+src/.vs/
